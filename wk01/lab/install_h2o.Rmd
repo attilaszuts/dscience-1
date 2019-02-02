@@ -1,0 +1,30 @@
+---
+title: "Lab week 1 - install H2O"
+subtitle: "Data Science 2: Machine Learning Concepts - CEU 2019"
+author: "Jeno Pal"
+date: '2019-02-04'
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    df_print: paged
+---
+
+We will use [`h2o`](https://www.h2o.ai/) in the second part of the course.
+Its installation requires Java. Once that is installed, run
+
+```{r, eval=FALSE}
+install.packages("h2o")
+```
+
+To test if the installation works, run these:
+
+```{r, eval=FALSE}
+library(h2o)
+h2o.init(nthreads=-1)
+
+dx_train <- h2o.importFile("https://s3.amazonaws.com/benchm-ml--main/train-0.1m.csv")
+dx_test <- h2o.importFile("https://s3.amazonaws.com/benchm-ml--main/test.csv")
+md <- h2o.randomForest(x = 1:8, y = 9, training_frame = dx_train, ntrees = 50)  
+h2o.performance(md, dx_test)@metrics$AUC
+```
