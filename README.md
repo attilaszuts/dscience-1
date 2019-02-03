@@ -3,12 +3,21 @@
 ## Machine Learning #1 and #2
 
 
-This repo contains materials for the introductory/intermediate Machine Learning (ML) courses (4 credits total) taught in the
+This repo contains materials for the introductory/intermediate Machine Learning (ML) courses (3 credits total) taught in the
 [MSc in Business Analytics program](https://economics.ceu.edu/program/master-science-business-analytics)
-at the Central European University (CEU) starting January 2018.
+at the Central European University (CEU), 2019.
+The material for 2018 can be found on branch '2018'.
 The material for the previous 2-credit course taught in 2016 and 2017 can be found
 [here](https://github.com/szilard/teach-data-science-msc-analytics-ceu).
 
+### Course Design and Instructors
+
+Zoltán Papp <br>
+Jenő Pál (TA)
+
+### Initial Course Designer (and Instructor pre-2018):
+
+Szilárd Pafka <br>
 
 ### Course Description and Objectives
 
@@ -25,18 +34,6 @@ After an overview of the entire data science landscape this course will focus on
 #### Data Science and Machine Learning 2 (Tools):
 
 This course will build on the previous one (which introduced the basic concepts in machine learning) and will discuss state-of-the-art algorithms for supervised learning (linear models, lasso, decision trees, random forests, gradient boosting machines, neural networks, support vector machine, deep learning etc.). A large part of the course will be dedicated to using (hands-on) the software tools for machine learning used by data scientists in practice (various high-performance R packages, xgboost, libraries for deep learning etc.).
-
-
-
-### Initial Course Designer (and Instructor pre-2018):
-
-Szilárd Pafka <br>
-
-
-### Instructors
-
-Zoltán Papp <br>
-Jenő Pál (TA)
 
 
 ### Grading
