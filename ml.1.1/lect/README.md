@@ -1,5 +1,5 @@
 
-## Lect wk01
+## Lect ML 1.1
 
 Overview of data science. The elements of a data science project. Exploratory data analysis.
 Data preparation/munging. Data visualization. Machine learning. Workflow, reproducibility and productivity.
