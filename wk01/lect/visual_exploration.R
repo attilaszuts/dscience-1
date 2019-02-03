@@ -3,13 +3,14 @@
 # install.packages('ggplot2')
 # install.packages('lubridate')
 # install.packages('ddply')
-install.packages('data.table')
-
+# install.packages('data.table')
+# install.packages('corrplot')
 
 library(ggplot2)
 library(lubridate)
 library(plyr)
 library(data.table)
+library(corrplot)
 
 data_localfile <- "wk01/lect/data/bike_rental_train.csv"
 train <- fread(data_localfile)
@@ -56,3 +57,5 @@ ggplot(train, aes(x = hour, y = count, colour = weather)) +
   theme(plot.title=element_text(size=18))
 
 
+corrplot(cor(train[, c('temp', 'atemp', 'humidity', 'windspeed', 'count'), with=FALSE]), type = "upper", order = "hclust", tl.col = "black")
+head(train)
