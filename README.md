@@ -64,34 +64,34 @@ Class announcements and student Q&A will be done via Moodle
 
 ### ML #1
 
-**Week 1:** Overview of data science. The elements of a data science project. Data preparation. Exploratory data analysis, data visualization. Machine learning. Workflow, reproducibility and productivity.
-[Lecture](wk01/lect) | [Lab](wk01/lab).
+**ML 1.1:** Overview of data science. The elements of a data science project. Data preparation. Exploratory data analysis, data visualization. Machine learning. Workflow, reproducibility and productivity.
+[Lecture](ml.1.1/lect) | [Lab](ml.1.1/lab).
 
-**Week 2:** Introduction to supervised learning. Linear models vs k-nearest neighbors. Training and test error. Validation set. Bias and variance. Model evaluation and selection. Benchmark model selection. Boostraping, resampling. Time series split up by time.
-[Lecture](wk02/lect) | [Lab](wk02/lab).
+**ML 1.2:** Introduction to supervised learning. Linear models vs k-nearest neighbors. Training and test error. Validation set. Bias and variance. Model evaluation and selection. Benchmark model selection. Boostraping, resampling. Time series split up by time.
+[Lecture](ml.1.2/lect) | [Lab](ml.1.2/lab).
 
-**Week 3:** A high-level introduction to RF, Lasso, SVM, Boost, NN. Overfitting, regularization, cross-validation, naive implementation. ROC curve, AUC. Calibration plot. Hyperparameter tuning, grid, and random search.
-[Lecture](wk03/lect) | [Lab](wk03/lab).
+**ML 1.3:** A high-level introduction to RF, Lasso, SVM, Boost, NN. Overfitting, regularization, cross-validation, naive implementation. ROC curve, AUC. Calibration plot. Hyperparameter tuning, grid, and random search.
+[Lecture](ml.1.3/lect) | [Lab](ml.1.3/lab).
 
-**Week 4:** Unsupervised learning. Clustering (k-means, hierarchical). PCA / ICA. Time Series Analysis: correlation, autocorrelation, Filtering. Reviewing best practices in data science and practical research.
-[Lecture](wk04/lect) | [Lab](wk04/lab).
+**ML 1.4:** Unsupervised learning. Clustering (k-means, hierarchical). PCA / ICA. Time Series Analysis: correlation, autocorrelation, Filtering. Reviewing best practices in data science and practical research.
+[Lecture](ml.1.4/lect) | [Lab](ml.1.4/lab).
 
 
 ### ML #2
 
-**Week 10:** Deeper understanding of linear models, lasso. Understanding and tuning parameters for trees, random forests and gradient boosting machines. Impact of correlated features. Support vector machines.
+**ML 2.1:** Deeper understanding of linear models, lasso. Understanding and tuning parameters for trees, random forests and gradient boosting machines. Impact of correlated features. Support vector machines.
 Tools: R packages, xgboost, lightgbm
-[Lecture](wk10/lect) | [Lab](wk10/lab).
+[Lecture](ml.2.1/lect) | [Lab](ml.2.1/lab).
 
-**Week 11:** Neural networks and deep learning. Reinforcement Learning. Evolutionary Computing.
+**ML 2.2:** Neural networks and deep learning. Reinforcement Learning. Evolutionary Computing.
 Tools: R packages, Keras.
-[Lecture](wk11/lect) | [Lab](wk11/lab).
+[Lecture](ml.2.2/lect) | [Lab](ml.2.2/lab).
 
-**Week 12:** Ensembles, Stacking. Deploying machine learning models to production.
-[Lecture](wk12/lect) | [Lab](wk12/lab).
+**ML 2.3:** Ensembles, Stacking. Deploying machine learning models to production.
+[Lecture](ml.2.3/lect) | [Lab](ml.2.3/lab).
 
-**Week 13:** Recap and summary. **Final Exam (ML #1 and #2).**
-[Lecture](wk13/lect) | [Lab](wk13/lab).
+**ML 2.4:** Recap and summary. **Final Exam (ML #1 and #2).**
+[Lecture](ml.2.4/lect) | [Lab](ml.2.4/lab).
 
 
 
