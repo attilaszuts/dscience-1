@@ -1,5 +1,5 @@
 
-## Lect wk11
+## Lect ML 2.2
 
 Support vector machines. Ensembles, Stacking. Neural networks and deep learning. 
 

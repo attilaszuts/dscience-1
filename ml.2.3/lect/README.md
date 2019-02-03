@@ -1,5 +1,5 @@
 
-## Lect wk12
+## Lect ML 2.3
 
 Neural Networks, Deep Learning. Evolutionary computing (Genetic Algorithm, Evolutionary Strategies, Evolutionary Programming, Genetic Programming)
 

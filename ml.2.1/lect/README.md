@@ -1,5 +1,5 @@
 
-## Lect wk10
+## Lect ML 2.1
 
 Trees, Bagging, Boosting. Random Forests and Gradient Boosting machines. 
 

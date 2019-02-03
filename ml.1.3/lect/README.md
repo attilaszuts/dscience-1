@@ -1,5 +1,5 @@
 
-## Lect wk03
+## Lect ML 1.3
 
 Model evaluation and selection. Overfitting, regularization, cross-validation. ROC curve, AUC.
 Hyperparameter tuning, grid and random search. 

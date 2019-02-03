@@ -1,5 +1,5 @@
 
-## Lect wk13
+## Lect ML 2.4
 
 Recap, summary and Q&A.
 

@@ -1,5 +1,5 @@
 
-## Lab wk02
+## Lab ML 1.2
 
 In this class we are covering
 

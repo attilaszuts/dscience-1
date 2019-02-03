@@ -1,4 +1,4 @@
-## Lab wk01
+## Lab ML 1.1
 
 ### Goals
 

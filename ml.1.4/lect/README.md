@@ -1,5 +1,5 @@
 
-## Lect wk04
+## Lect ML 1.4
 
 Unsupervised learning. Clustering (k-means, hierarchical). 
 
