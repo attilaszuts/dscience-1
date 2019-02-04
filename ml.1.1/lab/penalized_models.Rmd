@@ -10,15 +10,18 @@ output:
     df_print: paged
 ---
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library(data.table)
 library(ggplot2)
-library(GGally) # ggplot extensions, install if it is missing
+library(GGally)   # ggplot extensions
 library(caret)
 library(magrittr)
 library(skimr)
 library(janitor)  # for data cleaning purposes
 library(glmnet)   # the main package for penalized linear models
+library(broom)    # for tidying regression coefficient outputs
+library(knitr)
+library(kableExtra)  # for nicer tables in rmarkdown
 
 theme_set(theme_bw())   # globally set ggplot theme
 ```
@@ -46,7 +49,7 @@ ggplot(data = housing_data, aes(x = log_sale_price)) + geom_density()
 
 Let's see correlations of features and the outcome variable. Based on this,
 simple benchmark models can quickly be put together.
-```{r}
+```{r, warning=FALSE, message=FALSE}
 ggcorr(housing_data)
 ```
 
@@ -57,17 +60,26 @@ ggpairs(housing_data, columns = c("log_sale_price", "gr_liv_area", "tot_rms_abv_
 ### A baseline model
 
 ```{r}
-lm(log_sale_price ~ gr_liv_area + tot_rms_abv_grd, data = housing_data)
+lm(log_sale_price ~ gr_liv_area + tot_rms_abv_grd, data = housing_data) %>% 
+  tidy() %>% 
+  kable(digits = 3) %>% 
+  kable_styling(full_width = F)
 ```
 
 Weird pattern: sales price decreases with the number of rooms? This is spurious and is caused by the high positive correlation between the feature variables. Univariate regressions have the intuitive signs:
 
 ```{r}
-lm(log_sale_price ~ gr_liv_area, data = housing_data)
+lm(log_sale_price ~ gr_liv_area, data = housing_data) %>% 
+  tidy() %>% 
+  kable(digits = 3) %>% 
+  kable_styling(full_width = F)
 ```
 
 ```{r}
-lm(log_sale_price ~ tot_rms_abv_grd, data = housing_data)
+lm(log_sale_price ~ tot_rms_abv_grd, data = housing_data) %>%
+  tidy() %>% 
+  kable(digits = 3) %>% 
+  kable_styling(full_width = F)
 ```
 
 Penalized methods offer a solution to these kinds of patterns.
@@ -76,7 +88,7 @@ Penalized methods offer a solution to these kinds of patterns.
 
 ```{r}
 set.seed(1234)
-training_ratio <- 0.5
+training_ratio <- 0.7
 train_indices <- createDataPartition(
   y = housing_data[["log_sale_price"]],
   times = 1,
@@ -90,6 +102,9 @@ fit_control <- trainControl(method = "cv", number = 10)
 ```
 
 ## Penalize large coefficients: the Ridge regression
+
+The ridge regression adds a penalty term to the sum of squared residuals: the sum of squares
+of the regression coefficients. This puts a cost on having large coefficients. Result: biased but lower variance model.
 
 ```{r}
 features <- setdiff(names(housing_data), c("sale_price", "log_sale_price"))
@@ -117,6 +132,35 @@ ridge_model <- glmnet(
 )
 
 plot(ridge_model, xvar = "lambda")
+```
+
+Look at some individual coefficients.
+```{r}
+# helper function to extract the coefficient sequence as a data.table
+get_glmnet_coeff_sequence <- function(glmnet_model) {
+  coeff_sequence <- coef(glmnet_model) %>% tidy() %>% as.data.table()
+  setnames(coeff_sequence, c("variable", "lambda_id", "value"))
+
+  lambdas <- data.table(
+    lambda = glmnet_model$lambda, 
+    lambda_id = paste0("s", 0:(length(glmnet_model$lambda) - 1))
+  )
+  
+  merge(coeff_sequence, lambdas, by = "lambda_id") 
+}
+```
+
+```{r}
+ridge_coeffs <- get_glmnet_coeff_sequence(ridge_model)
+```
+
+```{r}
+selected_variables <- c("gr_liv_area", "tot_rms_abv_grd", "garage_area",  "kitchen_abv_gr")
+ggplot(
+  data = ridge_coeffs[variable %in% selected_variables],
+  aes(x = log(lambda), y = value)) +
+    geom_line() +
+  facet_wrap(~ variable, scales = "free_y", ncol = 1)
 ```
 
 We can use cross-validation to determine the optimal penalty term weight. Two lambda values marked on the plot: one with the minimal CV RMSE, the other is the simplest model (highest lambda) which contains the optimal lambda's error within one standard deviation. That is, it gives the simplest model that is still "good enough".
@@ -186,7 +230,44 @@ lasso_model <- glmnet(
 
 plot(lasso_model, xvar = "lambda")
 ```
+Again, let's look at individual coefficients. We can see that some are set exactly to zero for higher values of the penalty term. This is in contrast to what we saw with the Ridge model.
 
+```{r}
+lasso_coeffs <- get_glmnet_coeff_sequence(lasso_model)
+```
+
+```{r}
+selected_variables <- c("gr_liv_area", "tot_rms_abv_grd", "garage_area", "kitchen_abv_gr")
+ggplot(
+  data = lasso_coeffs[variable %in% selected_variables],
+  aes(x = log(lambda), y = value)) +
+    geom_line() +
+  facet_wrap(~ variable, scales = "free_y", ncol = 1)
+```
+
+Again, we can apply cross-validation to determine the optimal value for the penalty term.
+
+```{r}
+set.seed(1234)
+lasso_model_cv <- cv.glmnet(
+  x = x_train, y = data_train[["log_sale_price"]], 
+  family = "gaussian",
+  alpha = 1,
+  nfolds = 10
+)
+
+best_lambda <- lasso_model_cv$lambda.min
+message(paste0("The optimally chosen penalty parameter: ", best_lambda))
+
+highest_good_enough_lambda <- lasso_model_cv$lambda.1se
+message(paste0("The optimally chosen penalty parameter: ", highest_good_enough_lambda))
+```
+
+```{r}
+plot(ridge_model_cv)
+```
+
+Fitting LASSO models with `caret` is similar to that of Ridge.
 ```{r, warning=FALSE}
 tenpowers <- 10^seq(-1, -5, by = -1)
 
@@ -213,11 +294,9 @@ lasso_fit
 ggplot(lasso_fit) + scale_x_log10()
 ```
 
-
-
 ### Variable selection - why is it happening?
 
-The constraints are different: LASSO's has corners, Ridge's is smooth.
+The constraints are different: LASSO's has corners, Ridge's is smooth. Corners mean some coefficients being exactly zero.
 
 ![Source: Introduction to Statistical Learning](images/islr_lasso_vs_ridge.png)
 
@@ -265,13 +344,33 @@ linear_fit <- train(
 ```
 
 ```{r}
-resamples(
+resample_profile <- resamples(
   list("linear" = linear_fit,
        "ridge" = ridge_fit,
        "lasso" = lasso_fit,
        "elastic net" = enet_fit
   )
-) %>% summary()
+) 
+
+summary(resample_profile)
+```
+
+```{r}
+bwplot(resample_profile)
+```
+
+Are differences between models large in a statistical sense? Not really. What we can certainly see is that the plain linear model's variance is much larger than that of the penalized ones.
+
+```{r}
+model_differences <- diff(resample_profile)
+```
+
+```{r}
+summary(model_differences)
+```
+
+```{r}
+dotplot(model_differences)
 ```
 
 ### Evaluate the chosen model on holdout set
