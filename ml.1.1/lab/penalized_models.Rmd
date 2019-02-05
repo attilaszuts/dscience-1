@@ -33,7 +33,7 @@ Disclaimer: this lab borrows lots of ideas and examples from [this](https://afit
 We are going to predict house sales prices in Ames, Iowa. See [here](https://cran.r-project.org/web/packages/AmesHousing/index.html).
 ```{r}
 library(AmesHousing)
-housing_data <- AmesHousing::make_ames() %>% as.data.table()
+housing_data <- make_ames() %>% as.data.table()
 housing_data <- clean_names(housing_data)
 housing_data[, log_sale_price := log(sale_price)]
 skim(housing_data)
@@ -178,7 +178,7 @@ best_lambda <- ridge_model_cv$lambda.min
 message(paste0("The optimally chosen penalty parameter: ", best_lambda))
 
 highest_good_enough_lambda <- ridge_model_cv$lambda.1se
-message(paste0("The optimally chosen penalty parameter: ", highest_good_enough_lambda))
+message(paste0("The highest good enough penalty parameter: ", highest_good_enough_lambda))
 ```
 
 ```{r}
@@ -260,11 +260,11 @@ best_lambda <- lasso_model_cv$lambda.min
 message(paste0("The optimally chosen penalty parameter: ", best_lambda))
 
 highest_good_enough_lambda <- lasso_model_cv$lambda.1se
-message(paste0("The optimally chosen penalty parameter: ", highest_good_enough_lambda))
+message(paste0("The highest good enough penalty parameter: ", highest_good_enough_lambda))
 ```
 
 ```{r}
-plot(ridge_model_cv)
+plot(lasso_model_cv)
 ```
 
 Fitting LASSO models with `caret` is similar to that of Ridge.
