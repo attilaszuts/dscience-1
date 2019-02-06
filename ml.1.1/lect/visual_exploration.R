@@ -12,7 +12,7 @@ library(plyr)
 library(data.table)
 library(corrplot)
 
-data_localfile <- "wk01/lect/data/bike_rental_train.csv"
+data_localfile <- "ml.1.1/lect/data/bike_rental_train.csv"
 train <- fread(data_localfile)
 
 train$season  <- factor(train$season, labels = c("Q1", "Q2", "Q3", "Q4"))
