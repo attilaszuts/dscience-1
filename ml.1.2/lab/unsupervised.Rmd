@@ -10,7 +10,7 @@ output:
     df_print: paged
 ---
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 library(data.table)
 library(caret)
 library(skimr)
@@ -25,6 +25,8 @@ library(factoextra)
 
 theme_set(theme_minimal())
 ```
+
+Main reference for these topics: [Introduction to Statistical Learning](http://www-bcf.usc.edu/~gareth/ISL/), Chapters 6 and 10. Excellent, simple explanations on deep issues.
 
 ## Principal Component Analysis (PCA)
 

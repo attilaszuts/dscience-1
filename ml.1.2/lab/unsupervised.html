@@ -132,9 +132,8 @@ $(document).ready(function () {
 </div>
 
 
-<pre class="r"><code>library(data.table)</code></pre>
-<pre><code>## Warning: package 'data.table' was built under R version 3.5.2</code></pre>
-<pre class="r"><code>library(caret)
+<pre class="r"><code>library(data.table)
+library(caret)
 library(skimr)
 library(datasets)
 library(ggplot2)
@@ -146,6 +145,7 @@ library(NbClust)
 library(factoextra)
 
 theme_set(theme_minimal())</code></pre>
+<p>Main reference for these topics: <a href="http://www-bcf.usc.edu/~gareth/ISL/">Introduction to Statistical Learning</a>, Chapters 6 and 10. Excellent, simple explanations on deep issues.</p>
 <div id="principal-component-analysis-pca" class="section level2">
 <h2>Principal Component Analysis (PCA)</h2>
 <p>We transform the coordinates of the original variables to capture as much variation as we can with independent (orthogonal) dimensions. For a very nice illustration and discussion, see <a href="https://stats.stackexchange.com/questions/2691/making-sense-of-principal-component-analysis-eigenvectors-eigenvalues">here</a>.</p>
