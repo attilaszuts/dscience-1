@@ -44,12 +44,10 @@ This course will build on the previous one (which introduced the basic concepts 
 
 (each course ML #1 and #2 separately)
 
-Weekly assignment dates and deadlines for ML #1:
-- Jan 16, due on Jan 29 8:00 AM
-- Jan 23, due on Feb 5 8:00 AM
-- Jan 30, due on Feb 12 8:00 AM
+Assignment dates and deadlines for ML #1:
+- Feb 11, due on Feb 22 3:00 PM
 
-Weekly assignment acceptance policy and achievable grades:
+Assignment acceptance policy and achievable grades:
 - 100% until due date
 - 50% within 24 hours past due date
 - 0% after that.
@@ -58,7 +56,6 @@ Weekly assignment acceptance policy and achievable grades:
 ### Announcements and Q&A
 
 Class announcements and student Q&A will be done via Moodle
-
 
 ### Syllabus and Schedule:
 
