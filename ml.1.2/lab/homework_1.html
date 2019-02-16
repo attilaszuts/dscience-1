@@ -132,7 +132,7 @@ $(document).ready(function () {
 
 <div id="general-information" class="section level2">
 <h2>General information</h2>
-<p>The due date of this homework assignment is 2018-02-25 3:00 p.m. You are required to submit two files to Moodle: an .Rmd file and the rendered .html file with your solutions.</p>
+<p>The due date of this homework assignment is 2019-02-25 3:00 p.m. You are required to submit two files to Moodle: an .Rmd file and the rendered .html file with your solutions.</p>
 <p>Please give short (2-3 sentences) interpretations, explanations to your answers, not only the program code and outputs.</p>
 <p>Grades will be distributed with the following rule: from the points you earn, you get 100% if you submit until the due date, 50% within 24 hours past due date 0% after that.</p>
 <pre class="r"><code>library(data.table)
@@ -144,7 +144,7 @@ library(magrittr)</code></pre>
 </div>
 <div id="supervised-learning-with-penalized-models-and-pca-27-points" class="section level2">
 <h2>1. Supervised learning with penalized models and PCA (27 points)</h2>
-<p>In this problem you are going to analyze a dataset about property values in Manhattan. This dataset is borrowed from the book <a href="https://www.jaredlander.com/r-for-everyone/data-in-r-for-everyone/">“R for Everyone”</a> by Jared Lander. The goal will be to predict the logarithm of the property value <code>TotalValue</code>.</p>
+<p>In this problem you are going to analyze a dataset about property values in Manhattan. This dataset is borrowed from the book <a href="https://www.jaredlander.com/r-for-everyone/data-in-r-for-everyone/">“R for Everyone”</a> by Jared Lander. The goal will be to predict the logarithm of the property value: <code>logTotalValue</code>.</p>
 <pre class="r"><code># more info about the data here: https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page
 data &lt;- readRDS(url('http://www.jaredlander.com/data/manhattan_Train.rds')) %&gt;% 
   as.data.table()
@@ -153,7 +153,7 @@ data &lt;- data[complete.cases(data)]</code></pre>
 <ol style="list-style-type: lower-alpha">
 <li><p>Do a short exploration of data and find possible predictors of the target variable.</p></li>
 <li><p>Create a training and a test set, assigning 30% of observations to the training set.</p></li>
-<li><p>Use a linear regression to predict <code>crim</code> and use 10-fold cross validation to assess the predictive power.</p></li>
+<li><p>Use a linear regression to predict <code>logTotalValue</code> and use 10-fold cross validation to assess the predictive power.</p></li>
 <li><p>Use penalized linear models for the same task. Make sure to try LASSO, Ridge and Elastic Net models. Does the best model improve on the simple linear model?</p></li>
 <li><p>Which of the models you’ve trained is the “simples one that is still good enough”? (Hint: explore adding <code>selectionFunction = &quot;oneSE&quot;</code> to the <code>trainControl</code> in <code>caret</code>’s <code>train</code>. What is its effect?).</p></li>
 <li><p>Now try to improve the linear model by using PCA for dimensionality reduction. Center and scale your variables and use <code>pcr</code> to conduct a search for the optimal number of principal components. Does PCA improve the fit over the simple linear model? (Hint: there are many factor variables. Make sure to include large number of principal components such as 60 - 90 to your search as well.)</p></li>
