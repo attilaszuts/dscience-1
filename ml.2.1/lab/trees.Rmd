@@ -1,16 +1,14 @@
 ---
-title: "Lab week 10 - Tree-based methods"
-subtitle: "Data Science and Machine Learning 2 - CEU 2018"
+title: "Lab week 1 - Tree-based methods"
+subtitle: "Data Science and Machine Learning 3 - CEU 2019"
 author: "Jeno Pal"
-date: '2018-03-06'
+date: '2019-02-18'
 output:
   html_document:
     df_print: paged
   html_notebook:
     df_print: paged
 ---
-
-
 
 ```{r, message=FALSE}
 library(data.table)
@@ -26,7 +24,7 @@ library(skimr)
 
 ## Bagging, random forests
 
-We covered decision trees in DS-ML-1. Using it as a base model lets us
+We covered decision trees in previous classes. Using it as a base model lets us
 build many different models with less variance and better predictive power.
 The downside: interpretation gets harder.
 
@@ -56,19 +54,24 @@ data[, Salary := NULL]
 ```{r}
 training_ratio <- 0.75 
 set.seed(1234)
-train_indices <- createDataPartition(y = data[["log_salary"]],
-                                     times = 1,
-                                     p = training_ratio,
-                                     list = FALSE)
+train_indices <- createDataPartition(
+  y = data[["log_salary"]],
+  times = 1,
+  p = training_ratio,
+  list = FALSE
+)
+
 data_train <- data[train_indices, ]
 data_test <- data[-train_indices, ]
 ```
 
 Let's see benchmarks: a linear model and a simple regression tree.
 ```{r}
-train_control <- trainControl(method = "repeatedcv",
-                              number = 5,
-                              repeats = 3)
+train_control <- trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 3
+)
 
 set.seed(857)
 linear_model <- train(log_salary ~ .,
@@ -93,46 +96,116 @@ rpart.plot(simple_tree_model[["finalModel"]])
 ```
 
 For random forests,
-`mtry` sets the number of variables randomly chosen for a tree. When `mtry`
+`mtry` sets the number of variables randomly chosen for any split in the tree. When `mtry`
 equals the number of features, it is the bagging.
 
 ```{r}
+tune_grid <- expand.grid(
+  .mtry = c(2, 3, 5, 7, 9, 12, 19),
+  .splitrule = "variance",
+  .min.node.size = c(5, 10)
+)
+
 # random forest
 set.seed(857)
 rf_model <- train(log_salary ~ .,
-                  method = "rf",
+                  method = "ranger",
                   data = data_train,
                   trControl = train_control,
-                  tuneGrid = data.frame(mtry = c(2, 3, 5, 7, 9, 12, 19)),
-                  importance = T # to calculate variable importance measures
+                  tuneGrid = tune_grid,
+                  importance = "impurity"
                   )
 rf_model
 ```
 
 ```{r}
+tune_grid <- expand.grid(
+  .mtry = c(2, 3, 5),
+  .splitrule = "variance",
+  .min.node.size = 5
+)
+
 # the number of trees is not a tuning parameter with caret
 # default is 500, you can change it with passing the parameter to train
 set.seed(857)
 rf_model_ntree_10 <- train(log_salary ~ .,
-                  method = "rf",
+                  method = "ranger",
                   data = data_train,
                   trControl = train_control,
-                  tuneGrid = data.frame(mtry = c(2, 3, 5)),
-                  ntree = 10,
-                  importance = T # to calculate variable importance measures
+                  tuneGrid = tune_grid,
+                  num.trees = 10,
+                  importance = "impurity"
                   )
 rf_model_ntree_10
 ```
 
 ```{r}
-# calculate test error
-RMSE <- function(x, true_x) sqrt(mean((x - true_x)^2))
+set.seed(857)
+rf_model_ntree_1000 <- train(
+  log_salary ~ .,
+  method = "ranger",
+  data = data_train,
+  trControl = train_control,
+  tuneGrid = tune_grid,
+  num.trees = 1000,
+  importance = "impurity"
+)
+rf_model_ntree_1000
+```
 
+```{r}
+resamples(list(rf_model_ntree_10, rf_model, rf_model_ntree_1000)) %>% 
+  summary()
+```
+
+```{r}
+# calculate test error
 RMSE(data_test[["log_salary"]], predict.train(rf_model, newdata = data_test))
 ```
 
 (It is a small dataset hence performance measures can have large
 variances.)
+
+### Out of bag error
+
+Bootstrap samples: some observations are used more than once, some not at all.
+On average, around 1/3 of the observations are not used in a bootstrap sample.
+
+Idea: for each sample point, obtain a random forest prediction from those trees
+where it was not used in the boostrap sample. Then comparing this prediction to reality
+gives an honest measure of performance.
+
+```{r}
+rf_model$finalModel
+```
+```{r}
+# the out of bag RMSE
+sqrt(rf_model$finalModel$prediction.error)
+```
+
+We can base our model selection on OOB error instead of CV. It is generally faster
+as you do not have to re-estimate the same model many times, you just use the output
+of the `num.trees` trees that you estimate for RF.
+```{r}
+tune_grid <- expand.grid(
+  .mtry = c(2, 3, 5, 7, 9, 12, 19),
+  .splitrule = "variance",
+  .min.node.size = c(5, 10)
+)
+
+train_control_oob <- trainControl(method = "oob")
+
+# random forest
+set.seed(857)
+rf_model_oob <- train(log_salary ~ .,
+                  method = "ranger",
+                  data = data_train,
+                  trControl = train_control_oob,
+                  tuneGrid = tune_grid,
+                  importance = "impurity"
+                  )
+rf_model_oob
+```
 
 ### Variable importance
 
@@ -176,6 +249,28 @@ gbm_model <- train(log_salary ~ .,
                    )
 gbm_model
 ```
+```{r}
+# we can refine the grid around the optimum found
+gbm_grid_refined <- expand.grid(
+  n.trees = c(500, 1000, 2000), 
+  interaction.depth = c(3, 5, 7), 
+  shrinkage = c(0.001, 0.005),
+  n.minobsinnode = c(5)
+)
+  
+gbm_model_refined <- train(log_salary ~ .,
+                   method = "gbm",
+                   data = data_train,
+                   trControl = train_control,
+                   tuneGrid = gbm_grid_refined,
+                   verbose = FALSE # gbm by default prints too much output
+                   )
+gbm_model_refined
+
+```
+
+Lower `eta` means slower learning, hence more trees are necessary to have
+good performance.
 
 4 hyperparameters: [the curse of dimensionality](https://en.wikipedia.org/wiki/Curse_of_dimensionality) 
 can make it hard to come up
@@ -187,20 +282,17 @@ growing with the number of hyperparameters (see [here](https://topepo.github.io/
 plot(varImp(gbm_model))
 ```
 
-Lower `eta` means slower learning, hence more trees are necessary to have
-good performance.
-
 Not tuned: `bag.fraction` parameter (set to default 0.5): for the construction
 of each tree, only `bag.fraction` share of the sample is used (randomly
 selected, see `?gbm`). 
 This, again, is the same idea as with bagging: decrease
 variance of the model. You can pass another value for it via
 giving `train` an argument `bag.fraction`, just like we saw with
-`rf` and `ntree`.
+`ranger` and `num.trees`.
 
 ```{r}
 gbm_grid_2 <- data.frame(n.trees = c(1000), 
-                         interaction.depth = c(5), 
+                         interaction.depth = c(7), 
                          shrinkage = c(0.005),
                          n.minobsinnode = c(5))
   
@@ -215,30 +307,29 @@ gbm_model_2 <- train(log_salary ~ .,
 gbm_model_2
 ```
 
-
 ### XGBoost
 
 A celebrated implementation of the gradient boosting idea. 
 _"Both xgboost and gbm follows the principle of gradient boosting. There are however, the difference in modeling details. Specifically, xgboost used a more regularized model formalization to control over-fitting, which gives it better performance."_
 
-
 See documentation [here](http://xgboost.readthedocs.io/).
 It proved to be very stable and widely applicable. For the many hyperparameters,
-consult the documentation.
+consult the documentation. New ones compared to prevoiusly seen `gbm`:
+  * `colsample_bytree`: constrain number of columns to use to build a tree in a step
 ```{r}
-xgbGrid <- expand.grid(nrounds = c(500, 1000),
+xgb_grid <- expand.grid(nrounds = c(500, 1000),
                        max_depth = c(2, 3, 5),
                        eta = c(0.01, 0.05),
                        gamma = 0,
                        colsample_bytree = c(0.5, 0.7),
-                       min_child_weight = 1,
+                       min_child_weight = 1, # similar to n.minobsinnode
                        subsample = c(0.5))
 set.seed(857)
 xgboost_model <- train(log_salary ~ .,
                        method = "xgbTree",
                        data = data_train,
                        trControl = train_control,
-                       tuneGrid = xgbGrid)
+                       tuneGrid = xgb_grid)
 xgboost_model
 ```
 
@@ -246,11 +337,10 @@ xgboost_model
 plot(varImp(xgboost_model))
 ```
 
-
 ```{r}
 resamples_object <- resamples(list("rpart" = simple_tree_model,
                                    "rf" = rf_model,
-                                   "gbm" = gbm_model,
+                                   "gbm" = gbm_model_refined,
                                    "xgboost" = xgboost_model))
 summary(resamples_object)
 ```
