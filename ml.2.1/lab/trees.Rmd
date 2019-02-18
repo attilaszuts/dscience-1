@@ -33,8 +33,8 @@ versions on bootstrap samples ("Bagging": Bootstrap AGGregation).
 Then predict: take the average (regression),
 majority vote / class share (classification). 
 
-Random forests: randomly constrain the set of predictor variables used to
-grow trees. Goal: avoid correlated trees that are very similar to each other,
+Random forests: randomly constrain the set of predictor variables used to grow trees (randomly select at each split). 
+Goal: avoid correlated trees that are very similar to each other,
 still with the aim of decreasing variance.
 
 ```{r}
@@ -257,7 +257,8 @@ gbm_grid_refined <- expand.grid(
   shrinkage = c(0.001, 0.005),
   n.minobsinnode = c(5)
 )
-  
+
+set.seed(857)
 gbm_model_refined <- train(log_salary ~ .,
                    method = "gbm",
                    data = data_train,
@@ -278,6 +279,7 @@ with efficient grids for hyperparameter search. However, with `gbm` and many
 other models, in reality the models to be estimated are not exponentially
 growing with the number of hyperparameters (see [here](https://topepo.github.io/caret/random-hyperparameter-search.html)).
 
+The variable importance profile is typically more extreme than for random forests. This is not a contradiction or a problem, just a property of the models and ultimately different faces of the data.
 ```{r}
 plot(varImp(gbm_model))
 ```
@@ -295,7 +297,8 @@ gbm_grid_2 <- data.frame(n.trees = c(1000),
                          interaction.depth = c(7), 
                          shrinkage = c(0.005),
                          n.minobsinnode = c(5))
-  
+
+set.seed(857)
 gbm_model_2 <- train(log_salary ~ .,
                    method = "gbm",
                    data = data_train,
