@@ -1,12 +1,12 @@
 ---
-title: "Lab week 12 - Stacking"
-subtitle: "Data Science and Machine Learning 2 - CEU 2018"
+title: "Lab week 2 - Stacking"
+subtitle: "Data Science and Machine Learning 3 - CEU 2019"
 author: "Jeno Pal"
-date: '2018-03-20'
+date: '2019-02-25'
 output:
-  html_notebook:
-    df_print: paged
   html_document:
+    df_print: paged
+  html_notebook:
     df_print: paged
 ---
 
@@ -39,8 +39,6 @@ improve individual models.
 Stacked models do not always perform better than individual ones but
 many times they do.
 
-You have seen
-how to do stacking with `caret` in the lecture.
 It is very convenient to create stacked ensembles in h2o, we are
 gaining practice with this now. See more [here](http://docs.h2o.ai/h2o/latest-stable/h2o-docs/data-science/stacked-ensembles.html).
 
@@ -48,7 +46,7 @@ gaining practice with this now. See more [here](http://docs.h2o.ai/h2o/latest-st
 ```{r}
 data <- h2o.importFile("../../data/airlines/airline100K.csv")
 
-data_split <- h2o.splitFrame(data, ratios = 0.7, seed = 123)
+data_split <- h2o.splitFrame(data, ratios = 0.2, seed = 123)
 data_train <- data_split[[1]]
 data_test <- data_split[[2]]
 
@@ -67,7 +65,7 @@ glm_model <- h2o.glm(
   lambda_search = TRUE,
   seed = 123,
   nfolds = 5, 
-  keep_cross_validation_predictions = TRUE
+  keep_cross_validation_predictions = TRUE  # this is necessary to perform later stacking
 )
 ```
 
@@ -100,17 +98,22 @@ ensemble_model <- h2o.stackedEnsemble(
   training_frame = data_train,
   base_models = list(glm_model, 
                      gbm_model,
-                     deeplearning_model))
+                     deeplearning_model),
+  keep_levelone_frame = TRUE)
 ```
-```{r}
-# inspect test set correlations of scores
-predictions <- data.table(
-  "glm" = as.data.frame(h2o.predict(glm_model, newdata = data_test)$Y)$Y,
-  "gbm" = as.data.frame(h2o.predict(gbm_model, newdata = data_test)$Y)$Y,
-  "dl" = as.data.frame(h2o.predict(deeplearning_model, newdata = data_test)$Y)$Y
-)
 
-ggcorr(predictions, label = TRUE, label_round = 2)
+```{r}
+# we can look into the level-1 features that are used as features by the meta learner
+level_1_features <- h2o.getFrame(ensemble_model@model$levelone_frame_id$name)
+level_1_features
+```
+
+```{r}
+# inspect correlations among scores from different models
+level_1_dt <- as.data.table(level_1_features)[, 1:3]
+setnames(level_1_dt, c("glm", "gbm", "dl"))
+
+ggcorr(level_1_dt, label = TRUE, label_round = 2)
 ```
 
 
@@ -180,5 +183,30 @@ for (model_id in gbm_grid@model_ids) {
 print(h2o.auc(h2o.performance(ensemble_model_grid_gbm, newdata = data_test)))
 ```
 
+## AutoML
 
+Based on stacking H2O offers an out-of-the-box tool called "auto ML". It runs some
+models that differ from each other and then creates a stacked version of them. Finally,
+the best model is selectd.
+```{r}
+automl_model <- h2o.automl(X, y,
+  training_frame = data_train,
+  max_runtime_secs = 120)  # you can specify how long (approx.) you want the estimation to run
+```
 
+"Leaderboard" of the models: how well they perform based on cross-validation.
+```{r}
+lb <- automl_model@leaderboard
+print(lb, n = nrow(lb))
+```
+
+```{r}
+# the best performing model is stored in '@leader'
+automl_model@leader
+```
+
+```{r}
+print(h2o.auc(h2o.performance(automl_model@leader, newdata = data_test)))
+```
+
+For a more in-depth tutorial, see [here](https://github.com/h2oai/h2o-tutorials/tree/master/h2o-world-2017/automl).
