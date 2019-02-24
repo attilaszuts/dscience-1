@@ -1,8 +1,8 @@
 ---
-title: "Lab week 11 - h2o"
-subtitle: "Data Science and Machine Learning 2 - CEU 2018"
+title: "Lab week 2 - H2O"
+subtitle: "Data Science and Machine Learning 3 - CEU 2019"
 author: "Jeno Pal"
-date: '2018-03-13'
+date: '2019-02-25'
 output:
   html_document:
     df_print: paged
@@ -39,6 +39,7 @@ h2o.init()
 
 ```{r}
 # stop it via h2o.shutdown()
+# you can specify how much memory H2O can use. If you have it, the more the better: h2o.init(max_mem_size = '8g')
 ```
 
 ```{r}
@@ -67,9 +68,12 @@ GLM: __penalized__ linear regression methods.
 y <- "logwage"
 X <- setdiff(names(h2o_data), c(y, "year"))
 
+# alpha = 0 is the Ridge, just like we saw with glmnet
+# lambda is determined by some heuristic
 glm_fit <- h2o.glm(X, y, 
                training_frame = data_train,
                alpha = 0,
+               lambda = 0.0001,
                nfolds = 5, 
                seed = 123)
 
@@ -90,16 +94,27 @@ glm_grid <- h2o.grid(x = X,
                      y = y, 
                      training_frame = data_train, 
                      algorithm = "glm", 
-                     lambda_search = TRUE,
+                     lambda_search = TRUE,   # performs search for optimal lambda
                      nfolds = 5,
                      seed = 123,
                      hyper_params = hyper_params)
 h2o.getGrid(grid_id = glm_grid@grid_id, sort_by = "rmse", decreasing = FALSE)
 ```
 
+```{r}
+# get the best model based on the cross-validation exercise
+best_glm <- h2o.getModel(glm_grid@model_ids[[1]])
+best_glm@model$model_summary
+```
+
+```{r}
+foo <- h2o.getGLMFullRegularizationPath(best_glm)
+foo$lambdas
+```
+
 Random Forests are there for you to use as well.
 ```{r}
-# random forests
+# here ntrees is also a tuning parameter
 rf_params <- list(ntrees = c(500),
                   mtries = c(2, 3, 5))
 
