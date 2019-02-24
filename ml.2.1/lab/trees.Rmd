@@ -239,7 +239,7 @@ gbm_grid <- expand.grid(n.trees = c(100, 500, 1000),
                         interaction.depth = c(2, 3, 5), 
                         shrinkage = c(0.005, 0.01, 0.1),
                         n.minobsinnode = c(5))
-  
+set.seed(857)
 gbm_model <- train(log_salary ~ .,
                    method = "gbm",
                    data = data_train,
@@ -252,9 +252,9 @@ gbm_model
 ```{r}
 # we can refine the grid around the optimum found
 gbm_grid_refined <- expand.grid(
-  n.trees = c(500, 1000, 2000), 
+  n.trees = c(500, 1000), 
   interaction.depth = c(3, 5, 7), 
-  shrinkage = c(0.001, 0.005),
+  shrinkage = c(0.01),
   n.minobsinnode = c(5)
 )
 
