@@ -1,8 +1,8 @@
 ---
-title: "Lab week 12 - Deep learning with Keras"
-subtitle: "Data Science and Machine Learning 2 - CEU 2018"
+title: "Lab week 3 - Deep learning with Keras"
+subtitle: "Data Science and Machine Learning 3 - CEU 2019"
 author: "Jeno Pal"
-date: '2018-03-13'
+date: '2019-03-04'
 output:
   html_document:
     df_print: paged
@@ -14,6 +14,13 @@ output:
 
 The [homepage](https://keras.rstudio.com/) has great descrpitions, expamples
 and tutorials. Cheatsheet [here](https://www.rstudio.com/resources/cheatsheets/). 
+
+```{r}
+# devtools::install_github("rstudio/keras")
+# library(keras)
+# install_keras()
+```
+
 
 ```{r}
 library(keras)

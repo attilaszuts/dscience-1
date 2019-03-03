@@ -1,8 +1,8 @@
 ---
-title: "Lab week 11 - Neural nets and deep learning"
-subtitle: "Data Science and Machine Learning 2 - CEU 2018"
+title: "Lab week 3 - Neural nets and deep learning"
+subtitle: "Data Science and Machine Learning 3 - CEU 2019"
 author: "Jeno Pal"
-date: '2018-03-20'
+date: '2019-03-04'
 output:
   html_document:
     df_print: paged
@@ -51,7 +51,7 @@ data <- data[,
 
 ```{r}
 training_ratio <- 0.75 
-set.seed(1234)
+set.seed(123)
 train_indices <- createDataPartition(y = data[["default"]],
                                      times = 1,
                                      p = training_ratio,
@@ -62,7 +62,7 @@ data_test <- data[-train_indices, ]
 
 ```{r}
 train_control <- trainControl(method = "cv",
-                              number = 10,
+                              number = 5,
                               classProbs = TRUE,
                               summaryFunction = twoClassSummary)
 ```
@@ -81,8 +81,8 @@ glm_model
 
 Size: number of units in the hidden layer. Decay: regularization parameter.
 ```{r}
-tune_grid <- expand.grid(size = c(3, 5, 10, 15),
-                         decay = c(0.1, 0.5, 1, 1.2))
+tune_grid <- expand.grid(size = c(3, 5, 7, 10, 15),
+                         decay = c(0.1, 0.5, 1, 1.5, 2, 2.5, 5))
 
 set.seed(857)
 nnet_model <- train(default ~ .,
@@ -90,6 +90,9 @@ nnet_model <- train(default ~ .,
                    data = data_train,
                    trControl = train_control,
                    tuneGrid = tune_grid,
+                   # decay: regularization, has to center and scale like with Ridge, Lasso
+                   # PCA: correlated variables are problematic for gradient-based optimization
+                   preProcess = c("center", "scale", "pca"),
                    metric = "ROC",
                    # avoid extensive iteration output
                    trace = FALSE)
@@ -107,8 +110,8 @@ performance(nnet_prediction, measure = "auc")@y.values[[1]]
 5x times with the same grid. Parameter `repeats` controls the number of seeds.)
 ```{r}
 # takes a long time to run for the whole grid above
-tune_grid <- expand.grid(size = c(5),
-                         decay = c(0.5),
+tune_grid <- expand.grid(size = c(3),
+                         decay = c(2.5),
                          bag = FALSE)
 
 set.seed(857)
@@ -117,6 +120,7 @@ avnnet_model <- train(default ~ .,
                    data = data_train,
                    trControl = train_control,
                    tuneGrid = tune_grid,
+                   preProcess = c("center", "scale", "pca"),
                    metric = "ROC",
                    # avoid extensive iteration output
                    trace = FALSE)
@@ -143,6 +147,7 @@ to tune some of the hyperparameters.
 ```{r}
 library(h2o)
 h2o.init(nthreads=-1)
+# h2o.init(nthreads=-1, max_mem_size = '8g')
 ```
 
 ```{r}
@@ -171,7 +176,10 @@ h2o.performance(dl_model, data_test)@metrics$AUC
 ```
 
 ```{r}
-h2o.scoreHistory(dl_model)
+dl_model@model$scoring_history
+```
+```{r}
+dl_model@allparameters
 ```
 
 There are lots of parameters that you can change, see `?h2o.deeplearning`
@@ -341,3 +349,6 @@ early_stopping_model <- h2o.deeplearning(x = X,
 h2o.performance(early_stopping_model, data_test)@metrics$AUC
 ```
 
+## Helpful resources to deepen understanding
+
+Videos of 3 Blue 1 Brown are awesome. Start [here](https://www.youtube.com/watch?v=aircAruvnKk&t=).
