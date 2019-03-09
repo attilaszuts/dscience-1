@@ -1,0 +1,380 @@
+---
+title: "Lab week 3 - Deep learning with Keras"
+subtitle: "Data Science and Machine Learning 3 - CEU 2019"
+author: "Jeno Pal"
+date: '2019-03-04'
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    df_print: paged
+---
+
+## Deep neural nets with `keras`
+
+The [homepage](https://keras.rstudio.com/) has great descrpitions, expamples
+and tutorials. Cheatsheet [here](https://www.rstudio.com/resources/cheatsheets/). 
+
+```{r}
+# devtools::install_github("rstudio/keras")
+# library(keras)
+# install_keras()
+```
+
+
+```{r}
+library(keras)
+mnist <- dataset_mnist()
+x_train <- mnist$train$x
+y_train <- mnist$train$y
+x_test <- mnist$test$x
+y_test <- mnist$test$y
+```
+
+```{r, fig.width=2, fig.height=2}
+show_mnist_image <- function(x) {
+  image(1:28, 1:28, t(x)[,nrow(x):1],col=gray((0:255)/255)) 
+}
+
+show_mnist_image(x_train[18, , ])
+```
+
+### A fully connected network example
+
+Similar to what we saw with `h2o`. 
+
+```{r}
+# reshape
+x_train <- array_reshape(x_train, c(dim(x_train)[1], 784)) 
+x_test <- array_reshape(x_test, c(dim(x_test)[1], 784)) 
+# rescale
+x_train <- x_train / 255
+x_test <- x_test / 255
+
+# one-hot encoding of the target variable
+y_train <- to_categorical(y_train, 10)
+y_test <- to_categorical(y_test, 10)
+```
+
+```{r}
+model <- keras_model_sequential() 
+model %>% 
+  layer_dense(units = 128, activation = 'relu', input_shape = c(784)) %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 10, activation = 'softmax')
+```
+
+```{r}
+summary(model)
+# 1000480 = 784 (input features) * 128 (first layer nodes) + 128 (biases)
+# 
+```
+
+```{r}
+model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+```{r}
+history <- model %>% fit(
+  x_train, y_train, 
+  epochs = 30, batch_size = 128, 
+  validation_split = 0.2
+)
+```
+
+```{r}
+model %>% evaluate(x_test, y_test)
+```
+
+Compare predictions to reality:
+```{r}
+predicted_classes_test <- model %>% predict_classes(x_test)
+real_classes_test <- as.numeric(mnist$test$y)
+
+dt_pred_vs_real <- data.table(predicted = predicted_classes_test, real = real_classes_test)
+
+library(ggplot2)
+ggplot(dt_pred_vs_real[, .N, by = .(predicted, real)], aes(predicted, real)) +
+  geom_tile(aes(fill = N), colour = "white") +
+  scale_x_continuous(breaks = 0:9) +
+  scale_y_continuous(breaks = 0:9) +
+  geom_text(aes(label = sprintf("%1.0f", N)), vjust = 1, color = "white") +
+  scale_fill_viridis_c() +
+  theme_bw() + theme(legend.position = "none")
+```
+See some mistakes:
+```{r}
+dt_pred_vs_real[, row_number := 1:.N]
+indices_of_mistakes <- dt_pred_vs_real[predicted != real][["row_number"]]
+```
+
+```{r, fig.width=2, fig.height=2}
+ix <- indices_of_mistakes[1]
+
+dt_pred_vs_real[row_number == ix]
+show_mnist_image(mnist$test$x[ix, , ])
+```
+
+```{r, fig.width=2, fig.height=2}
+ix <- indices_of_mistakes[11]
+
+dt_pred_vs_real[row_number == ix]
+show_mnist_image(mnist$test$x[ix, , ])
+```
+
+## A convolutional neural net example
+
+It makes use of the 2d structure of the original input data, applying
+filters exploiting the 2d images. In `h2o` there is no option to use such models
+by default.
+
+```{r}
+mnist <- dataset_mnist()
+x_train <- mnist$train$x
+y_train <- mnist$train$y
+x_test <- mnist$test$x
+y_test <- mnist$test$y
+
+x_train <- array_reshape(x_train, c(nrow(x_train), 28, 28, 1))
+x_test <- array_reshape(x_test, c(nrow(x_test), 28, 28, 1))
+
+# rescale
+x_train <- x_train / 255
+x_test <- x_test / 255
+
+# one-hot encoding of the target variable
+y_train <- to_categorical(y_train, 10)
+y_test <- to_categorical(y_test, 10)
+```
+
+```{r}
+cnn_model <- keras_model_sequential() 
+cnn_model %>% 
+  layer_conv_2d(filters = 32,
+                kernel_size = c(3, 3), 
+                activation = 'relu',
+                input_shape = c(28, 28, 1)) %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>%
+  layer_flatten() %>% 
+  layer_dense(units = 32, activation = 'relu') %>% 
+  layer_dense(units = 10, activation = 'softmax')
+```
+
+```{r}
+summary(cnn_model)
+```
+
+```{r}
+cnn_model %>% evaluate(x_test, y_test)
+```
+
+## Data augmentation
+
+You can increase your training sample size and sharpen your model with slightly
+modifying your training sample data points, retaining the labels.
+
+```{r}
+mnist <- dataset_mnist()
+x_train_orig <- mnist$train$x
+y_train_orig <- mnist$train$y
+x_test <- mnist$test$x
+y_test <- mnist$test$y
+
+set.seed(12112)
+validation_share <- 0.2
+train_indices <- sample(1:nrow(x_train_orig), (1 - validation_share)*nrow(x_train_orig))
+x_train <- x_train_orig[train_indices, ,]
+x_valid <- x_train_orig[-train_indices, ,]
+y_train <- y_train_orig[train_indices]
+y_valid <- y_train_orig[-train_indices]
+```
+
+Pre-process the data:
+```{r}
+x_train <- array_reshape(x_train, c(nrow(x_train), 28, 28, 1))
+x_valid <- array_reshape(x_valid, c(nrow(x_valid), 28, 28, 1))
+x_test <- array_reshape(x_test, c(nrow(x_test), 28, 28, 1))
+
+x_train <- x_train / 255
+x_valid <- x_valid / 255
+x_test <- x_test / 255
+
+# one-hot encoding of the target variable
+y_train <- to_categorical(y_train, 10)
+y_valid <- to_categorical(y_valid, 10)
+y_test <- to_categorical(y_test, 10)
+```
+
+Set up steps with which we can alter images a bit:
+```{r}
+batch_size <- 128
+
+train_datagen <- image_data_generator(
+  rotation_range = 20
+  # width_shift_range = 0.1,
+  # height_shift_range = 0.1,
+  # shear_range = 0.1,
+  # zoom_range = 0.1
+)
+
+valid_datagen <- image_data_generator()
+
+train_generator <- flow_images_from_data(
+  x = x_train,
+  y = y_train,
+  generator = train_datagen,
+  batch_size = batch_size
+)
+
+valid_generator <- flow_images_from_data(
+  x = x_valid,
+  y = y_valid,
+  generator = valid_datagen,
+  batch_size = batch_size
+)
+```
+
+```{r}
+cnn_model_w_augmentation <- keras_model_sequential() 
+cnn_model_w_augmentation %>% 
+  layer_conv_2d(filters = 32,
+                kernel_size = c(3, 3), 
+                activation = 'relu',
+                input_shape = c(28, 28, 1)) %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>%
+  layer_flatten() %>% 
+  layer_dense(units = 32, activation = 'relu') %>% 
+  layer_dense(units = 10, activation = 'softmax')
+
+cnn_model_w_augmentation %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+
+cnn_model_w_augmentation %>% fit_generator(
+  train_generator,
+  epochs = 10,
+  steps_per_epoch = nrow(x_train) / batch_size,  # this does not make a difference here -- batch_size of the generator determines how training works
+  validation_data = valid_generator,
+  validation_steps = nrow(x_valid) / batch_size
+)
+```
+
+```{r}
+cnn_model_w_augmentation %>% evaluate(x_test, y_test)
+```
+
+### Data augmentation may help enormously when you have small data
+
+```{r}
+# create a smaller version of the training sample
+set.seed(123)
+small_data_indices <- sample(1:nrow(x_train), size = 3000)
+x_train_small <- x_train[small_data_indices, , ,]
+x_train_small <- array_reshape(x_train_small, c(nrow(x_train_small), 28, 28, 1))
+y_train_small <- y_train[small_data_indices, ]
+```
+
+#### Without augmentation
+
+```{r}
+cnn_model_small_data <- keras_model_sequential() 
+cnn_model_small_data %>% 
+  layer_conv_2d(filters = 32,
+                kernel_size = c(3, 3), 
+                activation = 'relu',
+                input_shape = c(28, 28, 1)) %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>%
+  layer_flatten() %>% 
+  layer_dense(units = 32, activation = 'relu') %>% 
+  layer_dense(units = 10, activation = 'softmax')
+
+cnn_model_small_data %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+
+cnn_model_small_data %>% fit(
+  x_train_small, y_train_small, 
+  epochs = 30, 
+  batch_size = 100, 
+  validation_split = 0.2
+)
+```
+
+```{r}
+cnn_model_small_data %>% evaluate(x_test, y_test)
+```
+
+#### With augmentation
+
+```{r}
+batch_size <- 100
+
+train_datagen <- image_data_generator(
+  rotation_range = 20,
+  # width_shift_range = 0.1,
+  # height_shift_range = 0.1
+  # shear_range = 0.05
+  # zoom_range = 0.1
+)
+
+valid_datagen <- image_data_generator()
+
+small_train_generator <- flow_images_from_data(
+  x = x_train_small,
+  y = y_train_small,
+  generator = train_datagen,
+  batch_size = batch_size
+)
+
+valid_generator <- flow_images_from_data(
+  x = x_valid,
+  y = y_valid,
+  generator = valid_datagen,
+  batch_size = batch_size
+)
+```
+
+```{r}
+cnn_model_w_augmentation_small_data <- keras_model_sequential() 
+cnn_model_w_augmentation_small_data %>% 
+  layer_conv_2d(filters = 32,
+                kernel_size = c(3, 3), 
+                activation = 'relu',
+                input_shape = c(28, 28, 1)) %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>%
+  layer_flatten() %>% 
+  layer_dense(units = 32, activation = 'relu') %>% 
+  layer_dense(units = 10, activation = 'softmax')
+
+cnn_model_w_augmentation_small_data %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+
+cnn_model_w_augmentation_small_data %>% fit_generator(
+  small_train_generator,
+  epochs = 30,
+  steps_per_epoch = nrow(x_train_small) / batch_size,  # this does not make a difference here -- batch_size of the generator determines how training works
+  validation_data = valid_generator,
+  validation_steps = nrow(x_valid) / batch_size
+)
+```
+
+```{r}
+cnn_model_w_augmentation_small_data %>% evaluate(x_test, y_test)
+```
+
+
