@@ -16,7 +16,8 @@ The [homepage](https://keras.rstudio.com/) has great descrpitions, expamples
 and tutorials. Cheatsheet [here](https://www.rstudio.com/resources/cheatsheets/). 
 
 ```{r}
-# devtools::install_github("rstudio/keras")
+# # devtools::install_github("rstudio/keras")
+# install.packages("keras")
 # library(keras)
 # install_keras()
 ```
@@ -174,9 +175,35 @@ cnn_model %>%
 summary(cnn_model)
 ```
 
+Number of parameters:
+- `layer_conv_2d` turns 28 x 28 to 26 x 26, using 9 parameters for each filter (3 x 3 weights), plus
+a bias for each filter, altogether 320 parameters
+- `max_pooling2d` takes each disjoint 2 x 2 squares and collapes them to 1, turning a 26 x 26
+"image"" to a 13 x 13. No parameters are associated with this step.
+- `flatten`: turns each "pixel" in each node to one separate node: 13 x 13 x 32 = 5408
+- `dense`: fully connected layer: 5408 nodes x 32 new nodes + 32 biases = 173088
+- final fully connected layer: 32 x 10 + 10 = 330
+
+```{r}
+cnn_model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+```{r}
+history <- model %>% fit(
+  x_train, y_train, 
+  epochs = 30, batch_size = 128, 
+  validation_split = 0.2
+)
+```
+
 ```{r}
 cnn_model %>% evaluate(x_test, y_test)
 ```
+
 
 ## Data augmentation
 
@@ -431,7 +458,7 @@ xx <- flow_images_from_data(
 augmented_versions <- lapply(1:10, function(ix) generator_next(xx) %>%  {.[1, , , ]})
 
 # see examples by running in console:
-grid::grid.raster(augmented_versions[[1]])
+grid::grid.raster(augmented_versions[[3]])
 ```
 
 ```{r}
@@ -515,7 +542,7 @@ img <- image_load(example_image_path, target_size = c(224, 224))  # 224: to conf
 x <- image_to_array(img)
 
 # ensure we have a 4d tensor with single element in the batch dimension,
-# the preprocess the input for prediction using resnet50
+# the preprocess the input for prediction using mobilenet
 x <- array_reshape(x, c(1, dim(x)))
 x <- mobilenet_preprocess_input(x)
 
