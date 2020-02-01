@@ -9,7 +9,7 @@ The material for the previous 2-credit course taught in 2016 and 2017 can be fou
 
 ### Course Design and Instructors
 
-Zoltán Papp
+Zoltán Papp <br>
 Jenő Pál (TA)
 
 ### Initial Course Designer (and Instructor pre-2018):
