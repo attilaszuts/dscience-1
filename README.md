@@ -1,7 +1,4 @@
-
-
 ## Machine Learning #1 and #2
-
 
 This repo contains materials for the introductory/intermediate Machine Learning (ML) courses (3 credits total) taught in the
 [MSc in Business Analytics program](https://economics.ceu.edu/program/master-science-business-analytics)
@@ -12,7 +9,7 @@ The material for the previous 2-credit course taught in 2016 and 2017 can be fou
 
 ### Course Design and Instructors
 
-Zoltán Papp <br>
+Zoltán Papp
 Jenő Pál (TA)
 
 ### Initial Course Designer (and Instructor pre-2018):
@@ -35,48 +32,48 @@ After an overview of the entire data science landscape this course will focus on
 
 This course will build on the previous one (which introduced the basic concepts in machine learning) and will discuss state-of-the-art algorithms for supervised learning (linear models, lasso, decision trees, random forests, gradient boosting machines, neural networks, support vector machine, deep learning etc.). A large part of the course will be dedicated to using (hands-on) the software tools for machine learning used by data scientists in practice (various high-performance R packages, xgboost, libraries for deep learning etc.).
 
-
 ### Grading
+
+The two courses are graded with the same structure but completely separately from each other.
 
 - 45% Weekly Assignments (homework exercises). These will be submitted using Moodle.
 - 45% Final Exam
 - 10% Quizzes at the beginning of each lecture, except the first lectures of each course. Missing a lecture or being late will result in 0% for the actual quiz score.
 
-(each course ML #1 and #2 separately)
-
-Assignment dates and deadlines for ML #1:
-- Feb 11, due on Feb 22 3:00 PM
+### Assignments
 
 Assignment acceptance policy and achievable grades:
 - 100% until due date
 - 50% within 24 hours past due date
 - 0% after that.
 
+Assignment dates and deadlines for ML #1:
+- Feb 12, due on Feb 23 3:00 PM
+
+### Final exam
+
+Final exam for ML1: Feb 19 1:30 PM
 
 ### Announcements and Q&A
 
-Class announcements and student Q&A will be done via Moodle
+Class announcements and student Q&A will be done via Moodle.
+  * [Course site for ML1](https://ceulearning.ceu.edu/course/view.php?id=10606).
 
 ### Syllabus and Schedule:
 
 ### ML #1
 
-**ML 1.1:** Overview of data science. The elements of a data science project. Data preparation. Exploratory data analysis, data visualization. Machine learning. Workflow, reproducibility and productivity.
+**ML 1.1:** 
+Lab: penalized linear models: ridge, LASSO, elastic net.
 [Lecture](ml.1.1/lect) | [Lab](ml.1.1/lab).
 
-**ML 1.2:** Introduction to supervised learning. Linear models vs k-nearest neighbors. Training and test error. Validation set. Bias and variance. Model evaluation and selection. Benchmark model selection. Boostraping, resampling. Time series split up by time.
+**ML 1.2:** 
+Lab: Unsupervised learning. Clustering (k-means, hierarchical). PCA.
 [Lecture](ml.1.2/lect) | [Lab](ml.1.2/lab).
-
-**ML 1.3:** A high-level introduction to RF, Lasso, SVM, Boost, NN. Overfitting, regularization, cross-validation, naive implementation. ROC curve, AUC. Calibration plot. Hyperparameter tuning, grid, and random search.
-[Lecture](ml.1.3/lect) | [Lab](ml.1.3/lab).
-
-**ML 1.4:** Unsupervised learning. Clustering (k-means, hierarchical). PCA / ICA. Time Series Analysis: correlation, autocorrelation, Filtering. Reviewing best practices in data science and practical research.
-[Lecture](ml.1.4/lect) | [Lab](ml.1.4/lab).
-
 
 ### ML #2
 
-**ML 2.1:** Deeper understanding of linear models, lasso. Understanding and tuning parameters for trees, random forests and gradient boosting machines. Impact of correlated features. Support vector machines.
+**ML 2.1:** Understanding and tuning parameters for trees, random forests and gradient boosting machines. Impact of correlated features. Support vector machines.
 Tools: R packages, xgboost, lightgbm
 [Lecture](ml.2.1/lect) | [Lab](ml.2.1/lab).
 
@@ -84,10 +81,10 @@ Tools: R packages, xgboost, lightgbm
 Tools: R packages, Keras.
 [Lecture](ml.2.2/lect) | [Lab](ml.2.2/lab).
 
-**ML 2.3:** Ensembles, Stacking. Deploying machine learning models to production.
+**ML 2.3:** Ensembles, Stacking.
 [Lecture](ml.2.3/lect) | [Lab](ml.2.3/lab).
 
-**ML 2.4:** Recap and summary. **Final Exam (ML #1 and #2).**
+**ML 2.4:** Recap and summary.
 [Lecture](ml.2.4/lect) | [Lab](ml.2.4/lab).
 
 
