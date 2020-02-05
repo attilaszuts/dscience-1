@@ -1,8 +1,8 @@
 ---
 title: "Lab week 1 - penalized linear models"
-subtitle: "Data Science 2: Machine Learning Concepts - CEU 2019"
+subtitle: "Data Science 2: Machine Learning Concepts - CEU 2020"
 author: "Jeno Pal"
-date: '2019-02-04'
+date: '2020-02-05'
 output:
   html_document:
     df_print: paged
@@ -296,6 +296,7 @@ ggplot(lasso_fit) + scale_x_log10()
 
 ### Variable selection - why is it happening?
 
+![Source: Introduction to Statistical Learning](images/lasso-ridge-alt-form.png)
 The constraints are different: LASSO's has corners, Ridge's is smooth. Corners mean some coefficients being exactly zero.
 
 ![Source: Introduction to Statistical Learning](images/islr_lasso_vs_ridge.png)
