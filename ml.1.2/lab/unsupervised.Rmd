@@ -368,7 +368,7 @@ plot_clusters_with_centers(data_features, km)
 ```
 
 ```{r}
-set.seed(123)
+set.seed(223456)
 km <- kmeans(data_features, centers = 3, nstart = 1)
 print(km$centers)
 print(table(km$cluster))
