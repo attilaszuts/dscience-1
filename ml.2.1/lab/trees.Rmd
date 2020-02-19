@@ -1,8 +1,8 @@
 ---
 title: "Lab week 1 - Tree-based methods"
-subtitle: "Data Science and Machine Learning 3 - CEU 2019"
+subtitle: "Data Science and Machine Learning 3 - CEU 2020"
 author: "Jeno Pal"
-date: '2019-02-18'
+date: '2020-02-19'
 output:
   html_document:
     df_print: paged
@@ -67,13 +67,15 @@ data_test <- data[-train_indices, ]
 
 Let's see benchmarks: a linear model and a simple regression tree.
 ```{r}
+set.seed(123)
+
 train_control <- trainControl(
   method = "repeatedcv",
   number = 5,
   repeats = 3
 )
 
-set.seed(857)
+set.seed(1234)
 linear_model <- train(log_salary ~ .,
                       method = "lm",
                       data = data_train,
@@ -82,7 +84,7 @@ linear_model
 ```
 
 ```{r}
-set.seed(857)
+set.seed(1234)
 simple_tree_model <- train(log_salary ~ .,
                       method = "rpart",
                       data = data_train,
@@ -107,7 +109,7 @@ tune_grid <- expand.grid(
 )
 
 # random forest
-set.seed(857)
+set.seed(1234)
 rf_model <- train(log_salary ~ .,
                   method = "ranger",
                   data = data_train,
@@ -122,12 +124,12 @@ rf_model
 tune_grid <- expand.grid(
   .mtry = c(2, 3, 5),
   .splitrule = "variance",
-  .min.node.size = 5
+  .min.node.size = 10
 )
 
 # the number of trees is not a tuning parameter with caret
 # default is 500, you can change it with passing the parameter to train
-set.seed(857)
+set.seed(1234)
 rf_model_ntree_10 <- train(log_salary ~ .,
                   method = "ranger",
                   data = data_train,
@@ -140,7 +142,7 @@ rf_model_ntree_10
 ```
 
 ```{r}
-set.seed(857)
+set.seed(1234)
 rf_model_ntree_1000 <- train(
   log_salary ~ .,
   method = "ranger",
@@ -172,9 +174,8 @@ Bootstrap samples: some observations are used more than once, some not at all.
 On average, around 1/3 of the observations are not used in a bootstrap sample.
 
 Idea: for each sample point, obtain a random forest prediction from those trees
-where it was not used in the boostrap sample. Then comparing this prediction to reality
-gives an honest measure of performance.
-
+where it was not used in the boostrap sample. 
+Then comparing this prediction to reality gives an honest measure of performance. 
 ```{r}
 rf_model$finalModel
 ```
@@ -196,7 +197,7 @@ tune_grid <- expand.grid(
 train_control_oob <- trainControl(method = "oob")
 
 # random forest
-set.seed(857)
+set.seed(1234)
 rf_model_oob <- train(log_salary ~ .,
                   method = "ranger",
                   data = data_train,
@@ -238,8 +239,8 @@ and high variance). Common part: idea of bagging.
 gbm_grid <- expand.grid(n.trees = c(100, 500, 1000), 
                         interaction.depth = c(2, 3, 5), 
                         shrinkage = c(0.005, 0.01, 0.1),
-                        n.minobsinnode = c(5))
-set.seed(857)
+                        n.minobsinnode = c(1))
+set.seed(1234)
 gbm_model <- train(log_salary ~ .,
                    method = "gbm",
                    data = data_train,
@@ -252,13 +253,13 @@ gbm_model
 ```{r}
 # we can refine the grid around the optimum found
 gbm_grid_refined <- expand.grid(
-  n.trees = c(500, 1000), 
-  interaction.depth = c(3, 5, 7), 
-  shrinkage = c(0.01),
-  n.minobsinnode = c(5)
+  n.trees = c(250, 500, 1000), 
+  interaction.depth = c(5, 7, 9), 
+  shrinkage = c(0.005, 0.01, 0.02, 0.05),
+  n.minobsinnode = c(1)
 )
 
-set.seed(857)
+set.seed(1234)
 gbm_model_refined <- train(log_salary ~ .,
                    method = "gbm",
                    data = data_train,
@@ -267,7 +268,6 @@ gbm_model_refined <- train(log_salary ~ .,
                    verbose = FALSE # gbm by default prints too much output
                    )
 gbm_model_refined
-
 ```
 
 Lower `eta` means slower learning, hence more trees are necessary to have
@@ -293,12 +293,12 @@ giving `train` an argument `bag.fraction`, just like we saw with
 `ranger` and `num.trees`.
 
 ```{r}
-gbm_grid_2 <- data.frame(n.trees = c(1000), 
+gbm_grid_2 <- data.frame(n.trees = c(500), 
                          interaction.depth = c(7), 
-                         shrinkage = c(0.005),
-                         n.minobsinnode = c(5))
+                         shrinkage = c(0.01),
+                         n.minobsinnode = c(1))
 
-set.seed(857)
+set.seed(1234)
 gbm_model_2 <- train(log_salary ~ .,
                    method = "gbm",
                    data = data_train,
@@ -327,7 +327,7 @@ xgb_grid <- expand.grid(nrounds = c(500, 1000),
                        colsample_bytree = c(0.5, 0.7),
                        min_child_weight = 1, # similar to n.minobsinnode
                        subsample = c(0.5))
-set.seed(857)
+set.seed(1234)
 xgboost_model <- train(log_salary ~ .,
                        method = "xgbTree",
                        data = data_train,
