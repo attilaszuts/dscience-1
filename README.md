@@ -48,11 +48,16 @@ Assignment acceptance policy and achievable grades:
 - 0% after that.
 
 Assignment dates and deadlines for ML #1:
-- Feb 12, due on Feb 24 3:00 AM
+- Feb 12, due on Feb 24 3:00 PM
+
+Assignment dates and deadlines for ML #1:
+- Feb 26, due on Mar 6 3:00 PM
+- (tentative) Mar 18, due on Mar 27 3:00 PM
 
 ### Final exam
 
 Final exam for ML1: Feb 19 1:30 PM
+Final exam for ML2: Mar 30 3.30 PM
 
 ### Announcements and Q&A
 
@@ -63,11 +68,11 @@ Class announcements and student Q&A will be done via Moodle.
 
 ### ML #1
 
-**ML 1.1:** 
+**ML 1.1:**
 Lab: penalized linear models: ridge, LASSO, elastic net.
 [Lecture](ml.1.1/lect) | [Lab](ml.1.1/lab).
 
-**ML 1.2:** 
+**ML 1.2:**
 Lab: Unsupervised learning. Clustering (k-means, hierarchical). PCA.
 [Lecture](ml.1.2/lect) | [Lab](ml.1.2/lab).
 
@@ -86,8 +91,3 @@ Tools: R packages, Keras.
 
 **ML 2.4:** Recap and summary.
 [Lecture](ml.2.4/lect) | [Lab](ml.2.4/lab).
-
-
-
-
-
