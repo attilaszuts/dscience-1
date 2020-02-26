@@ -87,7 +87,7 @@ print(h2o.rmse(glm_fit, xval = TRUE))
 
 You can perform a grid search with cross-validation to tune hyperparamters.
 ```{r}
-hyper_params <- list(alpha = c(0, .25, .5, .75, .1))
+hyper_params <- list(alpha = c(0, .25, .5, .75, 1))
 
 # build grid search with previously selected hyperparameters
 glm_grid <- h2o.grid(x = X, 
