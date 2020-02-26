@@ -1,8 +1,8 @@
 ---
 title: "Lab week 2 - H2O"
-subtitle: "Data Science and Machine Learning 3 - CEU 2019"
+subtitle: "Data Science and Machine Learning 3 - CEU 2020"
 author: "Jeno Pal"
-date: '2019-02-25'
+date: '2019-02-26'
 output:
   html_document:
     df_print: paged
