@@ -50,8 +50,8 @@ Assignment acceptance policy and achievable grades:
 Assignment dates and deadlines for ML #1:
 - Feb 12, due on Feb 24 3:00 PM
 
-Assignment dates and deadlines for ML #1:
-- Feb 26, due on Mar 6 3:00 PM
+Assignment dates and deadlines for ML #2:
+- Feb 26, due on Mar 9 3:00 PM
 - (tentative) Mar 18, due on Mar 27 3:00 PM
 
 ### Final exam
