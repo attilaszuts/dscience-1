@@ -1,8 +1,8 @@
 ---
 title: "Lab week 3 - Neural nets and deep learning"
-subtitle: "Data Science and Machine Learning 3 - CEU 2019"
+subtitle: "Data Science and Machine Learning 3 - CEU 2020"
 author: "Jeno Pal"
-date: '2019-03-04'
+date: '2020-03-04'
 output:
   html_document:
     df_print: paged
@@ -146,8 +146,8 @@ to tune some of the hyperparameters.
 
 ```{r}
 library(h2o)
-h2o.init(nthreads=-1)
-# h2o.init(nthreads=-1, max_mem_size = '8g')
+# h2o.init(nthreads=-1)
+h2o.init(nthreads=-1, max_mem_size = '8g')
 ```
 
 ```{r}
