@@ -27,6 +27,7 @@ library(keras)
 library(here)
 library(grid)
 library(magick)  # not absolutely necessary
+library(data.table)
 ```
 
 ```{r}
@@ -193,7 +194,7 @@ cnn_model %>% compile(
 ```
 
 ```{r}
-history <- model %>% fit(
+history <- cnn_model %>% fit(
   x_train, y_train, 
   epochs = 30, batch_size = 128, 
   validation_split = 0.2
@@ -419,7 +420,7 @@ library(here)
 library(grid)
 library(magick)
 # continue from here: why is this not working??
-example_image_path <- file.path(here(), "/data/dogs-vs-cats/train/cats/cat.10.jpg")
+example_image_path <- file.path(here(), "/data/dogs-vs-cats/train/cats/cat_10.jpg")
 
 image_read(example_image_path)  # this is a PIL image
 ```
@@ -537,7 +538,7 @@ model_imagenet <- application_mobilenet(weights = "imagenet")
 ```
 
 ```{r}
-example_image_path <- file.path(here(), "/data/dogs-vs-cats/train/cats/cat.10.jpg")
+example_image_path <- file.path(here(), "/data/dogs-vs-cats/train/cats/cat_10.jpg")
 img <- image_load(example_image_path, target_size = c(224, 224))  # 224: to conform with pre-trained network's inputs
 x <- image_to_array(img)
 
@@ -569,7 +570,7 @@ validation_datagen <- image_data_generator(rescale = 1/255)
 test_datagen <- image_data_generator(rescale = 1/255)  
 
 image_size <- c(128, 128)
-batch_size <- 100  # for speed up
+batch_size <- 10  # for speed up
 
 train_generator <- flow_images_from_directory(
   file.path(here(), "data/dogs-vs-cats/train/"), # Target directory  
@@ -621,14 +622,16 @@ model %>% compile(
   optimizer = optimizer_rmsprop(lr = 2e-5),
   metrics = c("accuracy")
 )
+```
 
+```{r}
 # train the model
 model %>% fit_generator(
   train_generator,
   steps_per_epoch = 2000 / batch_size,
   epochs = 1,  # takes long time to train more
   validation_data = validation_generator,
-  validation_steps = 50
+  validation_steps = 500
 )
 ```
 
