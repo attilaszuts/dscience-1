@@ -1,8 +1,8 @@
 ---
 title: "Lab week 3 - Deep learning with Keras"
-subtitle: "Data Science and Machine Learning 3 - CEU 2019"
+subtitle: "Data Science and Machine Learning 3 - CEU 2020"
 author: "Jeno Pal"
-date: '2019-03-11'
+date: '2020-03-11'
 output:
   html_document:
     df_print: paged
@@ -168,7 +168,7 @@ cnn_model %>%
   layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
   layer_dropout(rate = 0.25) %>%
   layer_flatten() %>% 
-  layer_dense(units = 32, activation = 'relu') %>% 
+  layer_dense(units = 16, activation = 'relu') %>% 
   layer_dense(units = 10, activation = 'softmax')
 ```
 
@@ -182,8 +182,8 @@ a bias for each filter, altogether 320 parameters
 - `max_pooling2d` takes each disjoint 2 x 2 squares and collapes them to 1, turning a 26 x 26
 "image"" to a 13 x 13. No parameters are associated with this step.
 - `flatten`: turns each "pixel" in each node to one separate node: 13 x 13 x 32 = 5408
-- `dense`: fully connected layer: 5408 nodes x 32 new nodes + 32 biases = 173088
-- final fully connected layer: 32 x 10 + 10 = 330
+- `dense`: fully connected layer: 5408 nodes x 16 new nodes + 16 biases = 86544
+- final fully connected layer: 16 x 10 + 10 = 170
 
 ```{r}
 cnn_model %>% compile(
@@ -196,7 +196,7 @@ cnn_model %>% compile(
 ```{r}
 history <- cnn_model %>% fit(
   x_train, y_train, 
-  epochs = 30, batch_size = 128, 
+  epochs = 10, batch_size = 128, 
   validation_split = 0.2
 )
 ```
@@ -301,7 +301,7 @@ cnn_model_w_augmentation %>% fit_generator(
 ```
 
 ```{r}
-cnn_model_w_augmentation %>% evaluate(x_test, y_test)
+# cnn_model_w_augmentation %>% evaluate(x_test, y_test)
 ```
 
 ### Data augmentation may help enormously when you have small data
@@ -520,13 +520,13 @@ cat_dog_model %>% compile(
 ```{r}
 # BEWARE: takes long time, reaches about 60% validation accuracy
 
-history <- cat_dog_model %>% fit_generator(
-  train_generator,
-  steps_per_epoch = 2000 / batch_size,
-  epochs = 30,
-  validation_data = validation_generator,
-  validation_steps = 50
-)
+# history <- cat_dog_model %>% fit_generator(
+#   train_generator,
+#   steps_per_epoch = 2000 / batch_size,
+#   epochs = 30,
+#   validation_data = validation_generator,
+#   validation_steps = 50
+# )
 ```
 
 See more in [this blogpost](https://blogs.rstudio.com/tensorflow/posts/2017-12-14-image-classification-on-small-datasets/).
@@ -534,7 +534,7 @@ See more in [this blogpost](https://blogs.rstudio.com/tensorflow/posts/2017-12-1
 ## Transfer learning: use pre-trained models as base
 
 ```{r}
-model_imagenet <- application_mobilenet(weights = "imagenet")
+model_imagenet <- application_mobilenet_v2(weights = "imagenet")
 ```
 
 ```{r}
@@ -600,26 +600,25 @@ test_generator <- flow_images_from_directory(
 
 ```{r}
 # create the base pre-trained model
-base_model <- application_mobilenet(weights = 'imagenet', include_top = FALSE,
+base_model <- application_mobilenet_v2(weights = 'imagenet', include_top = FALSE,
                                     input_shape = c(image_size, 3))
-# freeze all convolutional mobilenet layers
-freeze_weights(base_model)
 
 # train only the top layers (which were randomly initialized)
 
 # add our custom layers
-predictions <- base_model$output %>% 
+model <- keras_model_sequential() %>% 
+  base_model %>% 
   layer_global_average_pooling_2d() %>% 
   layer_dense(units = 16, activation = 'relu') %>% 
   layer_dense(units = 1, activation = 'sigmoid')
 
-# this is the model we will train
-model <- keras_model(inputs = base_model$input, outputs = predictions)
+# freeze all convolutional mobilenet layers
+freeze_weights(base_model)
 
 # compile the model (should be done *after* setting layers to non-trainable)
 model %>% compile(
   loss = "binary_crossentropy",
-  optimizer = optimizer_rmsprop(lr = 2e-5),
+  optimizer = optimizer_rmsprop(),
   metrics = c("accuracy")
 )
 ```
@@ -636,7 +635,7 @@ model %>% fit_generator(
 ```
 
 ```{r}
-model %>% evaluate_generator(test_generator, steps = 20)
+model %>% evaluate_generator(test_generator, steps = 200)
 ```
 
 We can reach much higher accuracy with the same data in shorter time if we rely on pre-trained models with similar applications. This is called "transfer learning" -- we transfer the knowledge learned on similar datasets to our current one and modify it for our purposes.
