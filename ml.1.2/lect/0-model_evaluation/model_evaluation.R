@@ -182,16 +182,17 @@ RootMeanSquaredError(bikeTest$count, predict(lmModel, bikeTest))
 #   - does preProcessing improve results?
 #   - can you improve resulst by setting k values manually?
 set.seed(123)
-trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
-knnModel <- train(count~season+workingday, data = bikeTrain, method = "knn",
+bikeTrain
+trctrl <- trainControl(method = "repeatedcv", number = 3, repeats = 1)
+knnModel <- train(count~hour+temp+humidity, data = bikeTrain, method = "knn",
                  trControl=trctrl,
                  preProcess=c("center", "scale"),
                  tuneLength=10
-                 #tuneGrid = data.frame(k=c(2:8))
+                 # tuneGrid = data.frame(k=c(15, 17, 19, 21))
                  )
 knnModel
 RootMeanSquaredError(bikeTest$count, predict(knnModel, bikeTest))
-
+plot(knnModel)
 
 # Exercise 3/A: 
 #   - Find good input features 
