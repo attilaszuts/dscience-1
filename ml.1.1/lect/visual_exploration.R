@@ -14,12 +14,12 @@ library(corrplot)
 
 data_localfile <- "ml.1.1/lect/data/bike_rental_train.csv"
 train <- fread(data_localfile)
-
+train
 train$season  <- factor(train$season, labels = c("Q1", "Q2", "Q3", "Q4"))
 train$weather <- factor(train$weather, labels = c("Good", "Normal", "Bad", "Very Bad"))
 train$hour    <- factor(hour(ymd_hms(train$datetime)))
 train$times   <- as.POSIXct(strftime(ymd_hms(train$datetime), format="%H:%M:%S"), format="%H:%M:%S")
-train$Weekday <- wday(ymd_hms(train$datetime), label=TRUE)
+train$Weekday <- wday(ymd_hms(train$datetime))
 
 train$prediction <- 100
 train[season == "Spring", prediction := 10 ]
@@ -28,15 +28,17 @@ error <- sum((train$prediction - train$count) ^  2)/length(train$prediction)
 error
 
 ## Few example plots
-ggplot(train, aes(x=count))+geom_density() 
-ggplot(train, aes(x=season, y=windspeed))+geom_boxplot() # easy to understand
+ggplot(train, aes(x=count)) + geom_density() 
+ggplot(train, aes(x=season, y=windspeed)) + geom_boxplot() # easy to understand
 ggplot(train, aes(x=windspeed)) + geom_density() + facet_grid(. ~ season) # difficult to understand
-
 ggplot(train, aes(x=temp)) + geom_density() + facet_grid(. ~ season)
 
 traindt = data.table(train)
 season_summary <- train[, .(count = mean(count)), by=.(season, hour)]
 weather_summary <- train[, .(count = mean(count)), by=.(weather, hour)]
+
+season_summary
+weather_summary
 
 ggplot(train, aes(x = hour, y = count, colour = season)) +
   geom_point(data = season_summary, aes(group = season)) +
