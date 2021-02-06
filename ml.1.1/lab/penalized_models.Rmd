@@ -1,8 +1,8 @@
 ---
 title: "Lab week 1 - penalized linear models"
-subtitle: "Data Science 2: Machine Learning Concepts - CEU 2020"
-author: "Jeno Pal"
-date: '2020-02-05'
+subtitle: "Data Science 2: Machine Learning Concepts - CEU 2021"
+author: "Janos K. Divenyi, Jeno Pal"
+date: '2021-02-08'
 output:
   html_document:
     df_print: paged
@@ -11,8 +11,7 @@ output:
 ---
 
 ```{r, message=FALSE, warning=FALSE}
-library(data.table)
-library(ggplot2)
+library(tidyverse)
 library(GGally)   # ggplot extensions
 library(caret)
 library(magrittr)
@@ -33,9 +32,9 @@ Disclaimer: this lab borrows lots of ideas and examples from [this](https://afit
 We are going to predict house sales prices in Ames, Iowa. See [here](https://cran.r-project.org/web/packages/AmesHousing/index.html).
 ```{r}
 library(AmesHousing)
-housing_data <- make_ames() %>% as.data.table()
+housing_data <- make_ames()
 housing_data <- clean_names(housing_data)
-housing_data[, log_sale_price := log(sale_price)]
+housing_data <- housing_data %>% mutate(log_sale_price = log(sale_price))
 skim(housing_data)
 ```
 
@@ -94,7 +93,7 @@ train_indices <- createDataPartition(
   times = 1,
   p = training_ratio,
   list = FALSE
-)
+) %>% as.vector()
 data_train <- housing_data[train_indices, ]
 data_test <- housing_data[-train_indices, ]
 
@@ -138,15 +137,15 @@ Look at some individual coefficients.
 ```{r}
 # helper function to extract the coefficient sequence as a data.table
 get_glmnet_coeff_sequence <- function(glmnet_model) {
-  coeff_sequence <- coef(glmnet_model) %>% tidy() %>% as.data.table()
-  setnames(coeff_sequence, c("variable", "lambda_id", "value"))
+  coeff_sequence <- coef(glmnet_model) %>% tidy()
+  names(coeff_sequence) <- c("variable", "lambda_id", "value")
 
-  lambdas <- data.table(
+  lambdas <- tibble(
     lambda = glmnet_model$lambda, 
     lambda_id = paste0("s", 0:(length(glmnet_model$lambda) - 1))
   )
   
-  merge(coeff_sequence, lambdas, by = "lambda_id") 
+  dplyr::inner_join(coeff_sequence, lambdas, by = "lambda_id") 
 }
 ```
 
@@ -157,7 +156,7 @@ ridge_coeffs <- get_glmnet_coeff_sequence(ridge_model)
 ```{r}
 selected_variables <- c("gr_liv_area", "tot_rms_abv_grd", "garage_area",  "kitchen_abv_gr")
 ggplot(
-  data = ridge_coeffs[variable %in% selected_variables],
+  data = ridge_coeffs %>% filter(variable %in% selected_variables),
   aes(x = log(lambda), y = value)) +
     geom_line() +
   facet_wrap(~ variable, scales = "free_y", ncol = 1)
@@ -239,7 +238,7 @@ lasso_coeffs <- get_glmnet_coeff_sequence(lasso_model)
 ```{r}
 selected_variables <- c("gr_liv_area", "tot_rms_abv_grd", "garage_area", "kitchen_abv_gr")
 ggplot(
-  data = lasso_coeffs[variable %in% selected_variables],
+  data = lasso_coeffs %>% filter(variable %in% selected_variables),
   aes(x = log(lambda), y = value)) +
     geom_line() +
   facet_wrap(~ variable, scales = "free_y", ncol = 1)
