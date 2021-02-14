@@ -11,7 +11,7 @@ output:
 ---
 
 # General information
-The due date of this homework assignment is 2020-03-09 3:00 p.m. You are required to submit two files to Moodle: an .Rmd file and the rendered .html file with your solutions.
+The due date of this homework assignment is 2021-03-07 11:59. You are required to submit two files to Moodle: an .Rmd file and the rendered .html file with your solutions.
 
 Please give short (2-3 sentences) interpretations, explanations to your answers, not only the program code and outputs.
 
@@ -44,7 +44,6 @@ In this problem you are going to work with the OJ dataset from the ISLR package.
 
 ```{r}
 data <- data.table(OJ)
-?ISLR::OJ
 ```
 
 (a) Create a training data of 75% and keep 25% of the data as a test set. Train a decision tree as a benchmark model. Plot the final model and interpret the result.
