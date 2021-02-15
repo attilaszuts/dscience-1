@@ -1,8 +1,8 @@
 ---
 title: "Lab week 2 - Unsupervised methods"
-subtitle: "Data Science 2: Machine Learning Concepts - CEU 2020"
-author: "Jeno Pal"
-date: '2019-02-12'
+subtitle: "Data Science 2: Machine Learning Concepts - CEU 2021"
+author: "Janos K. Divenyi, Jeno Pal"
+date: '2021-02-15'
 output:
   html_document:
     df_print: paged
@@ -11,22 +11,28 @@ output:
 ---
 
 ```{r, message=FALSE, warning=FALSE}
-library(data.table)
+library(tidyverse)
 library(caret)
 library(skimr)
-library(datasets)
-library(ggplot2)
-library(magrittr)
-library(glue)
+library(janitor)
 
-library(ISLR)
-library(NbClust)
-library(factoextra)
+library(factoextra) # provides nice functions for visualizing the output of PCA
+library(NbClust) # for choosing the optimal number of clusters
+
+library(knitr)
+library(kableExtra)
 
 theme_set(theme_minimal())
 ```
 
 Main reference for these topics: [Introduction to Statistical Learning](http://www-bcf.usc.edu/~gareth/ISL/), Chapters 6 and 10. Excellent, simple explanations on deep issues.
+
+StatQuest videos you might find helpful:
+  - [PCA #1](https://www.youtube.com/watch?v=HMOI_lkzW08&ab_channel=StatQuestwithJoshStarmer)
+  - [PCA #2](https://www.youtube.com/watch?v=FgakZw6K1QQ&ab_channel=StatQuestwithJoshStarmer)
+  - [K-Means clustering](https://www.youtube.com/watch?v=4b5d3muPQmA&ab_channel=StatQuestwithJoshStarmer)
+  - [Hierarchical clustering](https://www.youtube.com/watch?v=7xHsRkOdVwo&ab_channel=StatQuestwithJoshStarmer)
+
 
 ## Principal Component Analysis (PCA)
 
@@ -36,8 +42,6 @@ For a very nice illustration and discussion, see [here](https://stats.stackexcha
 
 ```{r}
 data <- USArrests
-# data <- data.table(data, keep.rownames = TRUE)
-# setnames(data, "rn", "state")
 print(skim(data))
 ```
 
@@ -48,23 +52,23 @@ Take two variables first only. We seek a linear combination of them that
 * with weights that are normalized (their sum of squares are 1)
 
 ```{r}
-dt_murder_assault <- data[, c("Murder", "Assault")] %>% as.data.table() 
-ggplot(dt_murder_assault, aes(Murder, Assault)) + 
+df_murder_assault <- select(data, Murder, Assault)
+ggplot(df_murder_assault, aes(Murder, Assault)) +
   geom_point()
 ```
 
 ```{r}
 # the variables have totally different variances
-print(dt_murder_assault[, lapply(.SD, var)])
+summarise(df_murder_assault, across(everything(), var))
 ```
 
 Demean the data only for easier visualizations.
 ```{r}
-dt_murder_assault_demeaned <- dt_murder_assault[, lapply(.SD, function(x) x - mean(x))]
+df_murder_assault_demeaned <- mutate(df_murder_assault, across(everything(), ~ .x - mean(.x)))
 ```
 
 ```{r}
-ggplot(dt_murder_assault_demeaned, aes(Murder, Assault)) + 
+ggplot(df_murder_assault_demeaned, aes(Murder, Assault)) +
   geom_point()
 ```
 
@@ -79,23 +83,23 @@ objective <- function(w_assault) {
   # we want to maximize variance
   # minus: since "optim" applies minimization.
   -var(
-    w_assault * dt_murder_assault_demeaned$Assault + 
-    sqrt(1 - w_assault^2) * dt_murder_assault_demeaned$Murder
+    w_assault * df_murder_assault_demeaned$Assault +
+    sqrt(1 - w_assault^2) * df_murder_assault_demeaned$Murder
   )
 }
 
 optim_result <- optimize(f = objective, interval = c(0, 1), tol = 1e-15)
 w_assault <- optim_result$minimum
 w_murder <- sqrt(1 - w_assault^2)
-message(glue("Weight of assault: {round(w_assault, 7)} \n Weight of murder: {round(w_murder, 7)}"))
+message(glue::glue("Weight of assault: {round(w_assault, 7)} \n Weight of murder: {round(w_murder, 7)}"))
 ```
 
 With PCA we can arrive at the same result.
 
 ```{r}
-# Note from the help of prcomp: 
+# Note from the help of prcomp:
 # "The signs of the columns of the rotation matrix are arbitrary, and so may differ between different programs for PCA, and even between different builds of R."
-pca_murder_assault <- prcomp(dt_murder_assault_demeaned)
+pca_murder_assault <- prcomp(df_murder_assault_demeaned)
 pca_murder_assault
 ```
 
@@ -107,19 +111,19 @@ pc1
 Let us depict this variance-maximizing linear combination of the two variables
 in the space of the original variables.
 ```{r}
-ggplot(dt_murder_assault_demeaned, aes(Murder, Assault)) + 
+ggplot(df_murder_assault_demeaned, aes(Murder, Assault)) +
   geom_point() +
   geom_abline(slope = pc1[["Assault"]] / pc1[["Murder"]], color = "red")
 ```
 
-WARNING: this line is very different from regressing Assault on Murder! PCA's aim is to find a line to which if 
+WARNING: this line is very different from regressing Assault on Murder! PCA's aim is to find a line to which if
 observations are projected, variance is the highest. Regression: squared errors to be minimized.
 
 ```{r}
-ggplot(dt_murder_assault_demeaned, aes(Murder, Assault)) + 
+ggplot(df_murder_assault_demeaned, aes(Murder, Assault)) +
   geom_point() +
   geom_abline(slope = pc1[["Assault"]] / pc1[["Murder"]], color = "red") +
-  geom_abline(slope = coef(lm(Assault ~ Murder, data = dt_murder_assault_demeaned))[["Murder"]], color = "blue")
+  geom_abline(slope = coef(lm(Assault ~ Murder, data = df_murder_assault_demeaned))[["Murder"]], color = "blue")
 ```
 
 See more about it [here](https://stats.stackexchange.com/questions/2691/making-sense-of-principal-component-analysis-eigenvectors-eigenvalues/140579#140579).
@@ -131,7 +135,7 @@ Scaling: necessary to have comparable units of different variables.
 capture that, even though it is only an artifact of units. We don't want that.)
 In the previous example we did not scale all variables for the sake of nicer illustrations and we indeed saw that the variable with the higher absolute variance got a lot more weight than the other. This is not really what we are after.
 
-Let's perform PCA on all 4 variables. The first principal component shows weights for a linear combination of the original variables that maximizes variance (up to constraining weights to have a sum of square equal to 1). 
+Let's perform PCA on all 4 variables. The first principal component shows weights for a linear combination of the original variables that maximizes variance (up to constraining weights to have a sum of square equal to 1).
 ```{r}
 pca_result <- prcomp(data, scale. = TRUE)
 print(pca_result)
@@ -148,11 +152,11 @@ colSums(pca_result$rotation^2)
 
 ```{r}
 # PCA components are orthogonal to each other: they contain "independent" variance from the data
-sum(pca_result$rotation[, 1] * pca_result$rotation[, 2]) 
+sum(pca_result$rotation[, 1] * pca_result$rotation[, 2])
 ```
 
 We can plot how much of total variance is captured by subsequent principal
-components (and in total). 
+components (and in total).
 ```{r}
 variances <- pca_result$sdev^2
 variances
@@ -177,15 +181,17 @@ total_variance
 We can inspect how large share of the variance is captured by certain number of principal components.
 ```{r}
 share_variance_by_component <- variances / total_variance
-dt_variance <- data.table(component = 1:length(variances),
-                          share_variance = share_variance_by_component)
-dt_variance[, cum_share_variance := cumsum(share_variance)]
+df_variance <- tibble(
+  component = 1:length(variances),
+  share_variance = share_variance_by_component
+) %>%
+  mutate(cum_share_variance = cumsum(share_variance))
 ```
 
 ```{r}
-ggplot(data = melt(dt_variance, id.vars = "component")) +
-  geom_line(aes(x = component, y = value, color = variable)) +
-  facet_wrap(~ variable, scales = "free_y") +
+ggplot(data = pivot_longer(df_variance, -component)) +
+  geom_line(aes(x = component, y = value, color = name)) +
+  facet_wrap(~ name, scales = "free_y") +
   theme(legend.position = "bottom")
 ```
 
@@ -193,7 +199,7 @@ How many components summarize the data? No definite answer: decide based
 on sufficient variance explained.
 
 We can plot the relative contribution of original variables to principal components. They are just a
-visual display of the relative weights that these variables represent in creating the principal components.
+visual display of the relative weights that these variables represent in creating the principal components. 
 ```{r}
 fviz_contrib(pca_result, "var", axes = 1)
 ```
@@ -233,22 +239,22 @@ preProcess(data, method = c("center", "scale", "pca"), thresh = 0.999)
 Let's predict baseball player salaries using PCA.
 ```{r}
 data <- ISLR::Hitters
-data <- data.table(data)
 print(skim(data))
 ```
 ```{r}
-data <- data[!is.na(Salary)]
+data <- drop_na(data, Salary)
 ```
 
 Train a simple linear model:
 ```{r}
 set.seed(857)
-lm_fit <- train(Salary ~ . , 
-                data = data, 
-                method = "lm", 
-                trControl = trainControl(method = "cv", number = 10),
-                preProcess = c("center", "scale")
-                )
+lm_fit <- train(
+  Salary ~ . ,
+  data = data,
+  method = "lm",
+  trControl = trainControl(method = "cv", number = 10),
+  preProcess = c("center", "scale")
+)
 lm_fit
 ```
 
@@ -257,16 +263,18 @@ set the `thresh` argument to set a threshold that PCA components
 explain at least a certain share of the variance):
 ```{r}
 set.seed(857)
-lm_fit_pca <- train(Salary ~ . , 
-                    data = data, 
-                    method = "lm", 
-                    trControl = trainControl(
-                      method = "cv", 
-                      number = 10,
-                      preProcOptions = list(pcaComp = 18)),
-                    preProcess = c("center", "scale", "pca")
+lm_fit_pca <- train(
+  Salary ~ . ,
+  data = data,
+  method = "lm",
+  trControl = trainControl(
+    method = "cv",
+    number = 10,
+    preProcOptions = list(pcaComp = 18)),
+  preProcess = c("center", "scale", "pca")
 )
 lm_fit_pca
+lm_fit_pca$preProcess
 ```
 
 Method `pcr` implements precisely this: linear regression with principal
@@ -275,13 +283,14 @@ components to be used.
 ```{r}
 tune_grid <- data.frame(ncomp = 1:19)
 set.seed(857)
-pcr_fit <- train(Salary ~ . , 
-                data = data, 
-                method = "pcr", 
-                trControl = trainControl(method = "cv", number = 10),
-                tuneGrid = tune_grid,
-                preProcess = c("center", "scale")
-                )
+pcr_fit <- train(
+  Salary ~ . ,
+  data = data,
+  method = "pcr",
+  trControl = trainControl(method = "cv", number = 10),
+  tuneGrid = tune_grid,
+  preProcess = c("center", "scale")
+)
 pcr_fit
 ```
 
@@ -290,12 +299,7 @@ pcr_fit
 Goal: group observations that are more similar to each other than to others.
 
 ```{r}
-data <- data.table(iris)
-setnames(data, c("sepal_length",
-                 "sepal_width", 
-                 "petal_length",
-                 "petal_width", 
-                 "species"))
+data <- clean_names(iris)
 print(skim(data))
 ```
 
@@ -306,17 +310,15 @@ ggplot(data, aes(x = petal_length, y = sepal_length, color = species)) + geom_po
 Suppose we do not know labels but want to group observations
 based on features.
 ```{r}
-data_features <- data[, .(petal_length, petal_width, sepal_length, sepal_width)]
+data_features <- select(data, -species)
 km <- kmeans(data_features, centers = 3)
 km
 ```
 
 ```{r}
-data_w_clusters <- cbind(data_features, 
-                         data.table("cluster" = factor(km$cluster)))
+data_w_clusters <- mutate(data_features, cluster = factor(km$cluster))
 
-ggplot(data_w_clusters, 
-       aes(x = petal_length, y = sepal_length, color = cluster)) + 
+ggplot(data_w_clusters, aes(x = petal_length, y = sepal_length, color = cluster)) +
   geom_point()
 ```
 
@@ -326,27 +328,25 @@ km$centers
 ```
 
 ```{r}
-centers <- data.table(km$centers)
-str(centers)
+centers <- as_tibble(km$centers) %>% 
+  mutate(cluster = factor(seq(nrow(km$centers))), center = TRUE)
+kable(centers, digits = 3) %>%
+  kable_styling(full_width = F)
 ```
 
 ```{r}
 plot_clusters_with_centers <- function(features, kmeans_object) {
-  
-  data_w_clusters <- cbind(
-    features, 
-    data.table("cluster" = factor(kmeans_object$cluster))
-  )
-  
-  centers <- data.table(kmeans_object$centers)
-  centers[, cluster := factor("center", levels = c(1, 2, 3, "center"))]
 
-  data_w_clusters_centers <- rbind(data_w_clusters, centers)
-  ggplot(data_w_clusters_centers, 
-       aes(x = petal_length, 
-           y = sepal_length, 
-           color = cluster,
-           size = ifelse(cluster == "center", 2, 1))) + 
+  data_w_clusters <- mutate(features, cluster = factor(kmeans_object$cluster))
+
+  centers <- as_tibble(kmeans_object$centers) %>%
+    mutate(cluster = factor(seq(nrow(km$centers))), center = TRUE)
+
+  data_w_clusters_centers <- bind_rows(data_w_clusters, centers)
+  ggplot(data_w_clusters_centers, aes(
+    x = petal_length, y = sepal_length,
+    color = cluster, size = ifelse(!is.na(center), 2, 1))
+  ) +
     geom_point() +
     scale_size(guide = 'none')
 }
@@ -380,7 +380,7 @@ plot_clusters_with_centers(data_features, km)
 We should always experiment with
 different starting values (probably generated randomly).
 `nstart` controls how many times the algorithm is run with different
-random starting ponits for the centers. Setting it to a high value
+random starting points for the centers. Setting it to a high value
 (e.g., 20) is a good idea to achieve the best groupings.
 
 ### Choosing K
@@ -388,28 +388,27 @@ random starting ponits for the centers. Setting it to a high value
 There are no general rules, depends on the application. There are some
 rules of thumb, though. There are many, you can explore some
 with explanation, [here](http://www.sthda.com/english/wiki/print.php?id=239).
+
+A popular one looks at the evolution of the within-sum-of-squares, and
+identifies the "elbow" point for the optimal number of clusters
+
+```{r}
+fviz_nbclust(data_features, kmeans, method = "wss")
+```
+
 `NbClust` calculates 30 indices based on various principles and chooses by
 majority rule.
 
 ```{r, results="hide"}
-nb <- NbClust(data_features, method = "kmeans", 
-              min.nc = 2, max.nc = 10, index = "all")
-```
-
-```{r}
-fviz_nbclust(nb)
-```
-
-```{r}
-# the gap method illustrated in the lecture
-nb <- NbClust(data_features, method = "kmeans",  min.nc = 2, max.nc = 10, index = "gap")
+nb <- NbClust(data_features, method = "kmeans", min.nc = 2, max.nc = 10, index = "all")
 nb
 ```
+
 
 ## Hierarchical clustering
 
 With hierarchical clustering we get a nested structure of clusters
-based on a dissimilarity measure. Is it better than k-means? It depends - 
+based on a dissimilarity measure. Is it better than k-means? It depends -
 k-means does not yield a hierarchical structure. If the data does not have
 one in reality, hierarchical may be not as good as k-means and there are
 reversed situations as well.
@@ -436,10 +435,9 @@ fviz_dend(hc, k = 6)
 ```{r}
 # get labels
 cluster_hc <- cutree(hc, 3)
-data_w_clusters <- cbind(data_features, data.table("cluster" = factor(cluster_hc)))
+data_w_clusters <- mutate(data_features, cluster = factor(cluster_hc))
 
-ggplot(data_w_clusters, 
-       aes(x = petal_length, y = sepal_length, color = cluster)) + 
+ggplot(data_w_clusters, aes(x = petal_length, y = sepal_length, color = cluster)) +
   geom_point()
 ```
 
@@ -460,4 +458,6 @@ fviz_dend(hc_single, k = 3)
 
 - as both clustering methods are based on distances in features, we may
 want to first bring all variables to the same scale
-- clusters may be sensitive to details such as scaling or not, whether we take subsets of data or what is the dissimilarity measure in hierarchical clustering. Advice: experiment with the settings and look for consistent patterns.
+- clusters may be sensitive to details such as scaling or not, whether we take 
+subsets of data or what is the dissimilarity measure in hierarchical clustering. 
+Advice: experiment with the settings and look for consistent patterns.
