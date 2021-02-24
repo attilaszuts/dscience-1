@@ -188,7 +188,7 @@ knnModel <- train(count~hour+temp+humidity, data = bikeTrain, method = "knn",
                  trControl=trctrl,
                  preProcess=c("center", "scale"),
                  tuneLength=10
-                 # tuneGrid = data.frame(k=c(15, 17, 19, 21))
+                 # tuneGrid = data.frame(k=c(15, 17, 19, 21)) # if you want to submit your own N-s
                  )
 knnModel
 RootMeanSquaredError(bikeTest$count, predict(knnModel, bikeTest))

@@ -101,8 +101,8 @@ lmElasticNetCaret <- train(count~quarter+temp+atemp+weather+hour+holiday+working
                  data = bikeTrain, 
                  method = "glmnet",
                  trControl=trctrl,
-                 tuneLength=5
-                 #tuneGrid = data.frame(lambda=seq(0.1,1,0.1), alpha=rep(1, 10))
+                 # tuneLength=5
+                 tuneGrid = data.frame(lambda=seq(0.1,1,0.1), alpha=rep(1, 10))
 )
 plot(lmElasticNetCaret)
 lmElasticNetCaret

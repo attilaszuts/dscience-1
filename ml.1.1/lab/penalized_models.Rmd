@@ -8,6 +8,8 @@ output:
     df_print: paged
   html_notebook:
     df_print: paged
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r, message=FALSE, warning=FALSE}
@@ -114,7 +116,7 @@ penalized models. Then we look at how this can be implemented through `caret`.
 
 ```{r}
 # glmnet needs inputs as a matrix. model.matrix: handles factor variables
-# -1: we do not need the intercept as glment will automatically include it
+# -1: we do not need the intercept as glmnet will automatically include it
 x_train <- model.matrix( ~ . -1, data_train[, features, with = FALSE])
 dim(x_train)
 
@@ -158,8 +160,8 @@ selected_variables <- c("gr_liv_area", "tot_rms_abv_grd", "garage_area",  "kitch
 ggplot(
   data = ridge_coeffs %>% filter(variable %in% selected_variables),
   aes(x = log(lambda), y = value)) +
-    geom_line() +
-  facet_wrap(~ variable, scales = "free_y", ncol = 1)
+    geom_line() + 
+  facet_wrap(~ variable, scales = "free_y", ncol = 1) # variables are transformed back to the original scale 
 ```
 
 We can use cross-validation to determine the optimal penalty term weight. Two lambda values marked on the plot: one with the minimal CV RMSE, the other is the simplest model (highest lambda) which contains the optimal lambda's error within one standard deviation. That is, it gives the simplest model that is still "good enough".
