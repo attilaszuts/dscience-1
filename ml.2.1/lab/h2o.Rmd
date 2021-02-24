@@ -1,0 +1,167 @@
+---
+title: "DS2 Lab1 - H2O"
+subtitle: "Data Science 2: Machine Learning Tools - CEU 2021"
+author: "Janos K. Divenyi, Jeno Pal"
+date: '2021-02-24'
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    df_print: paged
+---
+
+H2O: state-of-the-art machine learning software that is even
+suitable for big datasets.
+It offers very efficient and scalable implementations of
+popular ML algorithms that can
+
+* run on distributed systems
+* utilize multiple cores
+* work with GPUs
+
+Models estimated with h2o can be deployed to production environments
+through Java objects (see [here](http://docs.h2o.ai/h2o/latest-stable/h2o-docs/productionizing.html)).
+Also, h2o scales well compared to other competitor implementations
+(see Szilard Pafka's famous benchmarks [here](https://github.com/szilard/benchm-ml)).
+
+In general, best resource to learn is the
+[documentation](http://docs.h2o.ai/h2o/latest-stable/h2o-docs/welcome.html) and many
+tutorials are available on YouTube.
+
+```{r}
+library(tidyverse)
+library(ISLR)
+library(ggplot2)
+
+library(h2o)
+h2o.init()
+```
+
+```{r}
+# stop it via h2o.shutdown()
+# you can specify how much memory H2O can use. If you have it, the more the better: h2o.init(max_mem_size = '8g')
+```
+
+```{r}
+data <- as_tibble(ISLR::Wage)
+data
+skimr::skim(data)
+```
+
+```{r}
+data <- select(data, -c(region, wage))
+
+h2o_data <- as.h2o(data)
+str(h2o_data)
+```
+
+```{r}
+splitted_data <- h2o.splitFrame(h2o_data, ratios = c(0.6, 0.2), seed = 20210224)
+data_train <- splitted_data[[1]]
+data_valid <- splitted_data[[2]]
+data_test <- splitted_data[[3]]
+```
+
+GLM: *penalized* linear regression methods.
+```{r}
+y <- "logwage"
+X <- setdiff(names(h2o_data), c(y, "year"))
+
+# alpha = 0 is the Ridge, just like we saw with glmnet
+# lambda is determined by some heuristic
+glm_fit <- h2o.glm(
+  X, y,
+  training_frame = data_train,
+  alpha = 0, lambda = 0.0001,
+  nfolds = 5,
+  seed = 20210224
+)
+
+# xval stands for 'cross-validation'
+print(h2o.performance(glm_fit, xval = TRUE))
+```
+
+```{r}
+print(h2o.rmse(glm_fit, xval = TRUE))
+```
+
+You can perform a grid search with cross-validation to tune hyperparameters.
+```{r}
+hyper_params <- list(alpha = c(0, .25, .5, .75, 1))
+
+# build grid search with previously selected hyperparameters
+glm_grid <- h2o.grid(
+  "glm", x = X, y = y,
+  training_frame = data_train,
+  lambda_search = TRUE,   # performs search for optimal lambda as well
+  nfolds = 5,
+  seed = 20210224,
+  hyper_params = hyper_params
+)
+glm_grid
+```
+
+```{r}
+# get the best model based on the cross-validation exercise
+best_glm <- h2o.getModel(glm_grid@model_ids[[1]])
+best_glm
+```
+
+```{r}
+regularization_path <- h2o.getGLMFullRegularizationPath(best_glm)
+cbind(
+  lambda = regularization_path$lambdas,
+  regularization_path$coefficients[, 1:6]
+)
+```
+
+Random Forests are there for you to use as well.
+```{r}
+# here ntrees is also a tuning parameter
+rf_params <- list(ntrees = c(10, 500), mtries = c(2, 3, 5))
+
+rf_grid <- h2o.grid(
+  "randomForest", x = X, y = y,
+  training_frame = data_train,
+  nfolds = 5,
+  seed = 20210224,
+  hyper_params = rf_params
+)
+rf_grid
+```
+
+
+```{r}
+# get best models
+glm_model <- h2o.getModel(glm_grid@model_ids[[1]])
+rf_model <- h2o.getModel(rf_grid@model_ids[[1]])
+
+# predict on validation set
+validation_performances <- list(
+  "glm" = h2o.rmse(h2o.performance(glm_model, newdata = data_valid)),
+  "rf" = h2o.rmse(h2o.performance(rf_model, newdata = data_valid))
+)
+
+validation_performances
+```
+
+```{r}
+# test set performance
+h2o.rmse(h2o.performance(rf_model, newdata = data_test))
+```
+
+```{r}
+# turn back h2oFrames to plain data.frame
+prediction_vs_truth = bind_cols(
+    as_tibble(h2o.predict(rf_model, newdata = data_test)),
+    select(as_tibble(data_test), logwage)
+)
+prediction_vs_truth
+
+ggplot(prediction_vs_truth, aes(logwage, predict)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  xlim(3, 6) + ylim(3, 6) +
+  geom_point(size = 2, alpha = 0.3) +
+  theme_minimal() +
+  labs(x = "Truth", y = "Prediction")
+```

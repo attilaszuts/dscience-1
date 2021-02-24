@@ -2,15 +2,16 @@
 
 This repo contains materials for the introductory/intermediate Machine Learning (ML) courses (3 credits total) taught in the
 [MSc in Business Analytics program](https://economics.ceu.edu/program/master-science-business-analytics)
-at the Central European University (CEU), 2020.
-The material for 2018 and 2019 can be found on branches '2018' and '2019'.
+at the Central European University (CEU), 2021.
+The material for 2018, 2019 and 2020 can be found on branches '2018', '2019' and '2020'.
 The material for the previous 2-credit course taught in 2016 and 2017 can be found
 [here](https://github.com/szilard/teach-data-science-msc-analytics-ceu).
 
 ### Course Design and Instructors
 
 Zoltán Papp <br>
-Jenő Pál (TA)
+János Divényi (TA) <br>
+Jenő Pál (TA pre-2020)
 
 ### Initial Course Designer (and Instructor pre-2018):
 

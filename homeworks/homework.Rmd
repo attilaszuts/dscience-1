@@ -1,0 +1,65 @@
+---
+title: "Homework assignment "
+subtitle: "Data Analysis 3 for Finance: Machine Learning - CEU 2021"
+author: "Jeno Pal"
+date: '2021-02-07'
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    df_print: paged
+---
+
+# General information
+The due date of this homework assignment is 2021-03-07 11:59. You are required to submit two files to Moodle: an .Rmd file and the rendered .html file with your solutions.
+
+Please give short (2-3 sentences) interpretations, explanations to your answers, not only the program code and outputs.
+
+Grades will be distributed with the following rule: from the points you earn, you get 100% if you submit until the due date, 50% within 24 hours past due date 0% after that.
+
+
+
+```{r message=FALSE, warning=FALSE}
+
+# install.packages('ggplot2')
+# install.packages('lubridate')
+# install.packages('ddply')
+# install.packages('data.table')
+# install.packages('corrplot')
+
+
+library(lubridate)
+library(plyr)
+library(data.table)
+library(caret)
+library(party)
+library(data.table)
+library(ggplot2)
+library(ISLR)
+```
+
+
+# 1 Tree ensemble models
+In this problem you are going to work with the OJ dataset from the ISLR package. This dataset records purchases of two types of orange juices and presents customer and product characteristics as features. The goal is to predict which of the juices is chosen in a given purchase situation. See ?ISLR::OJ for a description of the variables.
+
+```{r}
+data <- data.table(OJ)
+```
+
+(a) Create a training data of 75% and keep 25% of the data as a test set. Train a decision tree as a benchmark model. Plot the final model and interpret the result.
+Investigate tree ensemble models: random forest, gradient boosting machine, XGBoost. Try various tuning parameter combinations and select the best model using cross-validation.
+(b) Compare different models with the resamples function (make sure to set the same seed before model training for all 3 models). Is any of these giving significantly different predictive power than the others?
+Choose the best model and plot ROC curve for the best model on the test set. Calculate and interpret AUC.
+(c) Inspect variable importance plots for the 3 models. Are similar variables found to be the most important for the 3 models?
+
+# 2 Tree based methods
+```{r}
+data <- data.table(Hitters)
+data <- data[!is.na(Salary)]
+data[, log_salary := log(Salary)]
+data[, Salary := NULL]
+
+```
+(a) Train two random forest models: one with mtry = 2 and another with mtry = 10 (use the whole dataset and don’t use cross-validation). Inspect variable importance profiles. What do you see in terms of how important the first few variables are relative to each other?
+(b) One of them is more extreme in terms of how the most important and the next ones relate to each other. Give an intuitive explanation how mtry relates to relative importance of variables in random forest models.
+(c) In the same vein, estimate two gbm models and set bag.fraction to 0.1 first and to 0.9 in the second. The tuneGrid should consist of the same values for the two models (a dataframe with one row): n.trees = 500, interaction.depth = 5, shrinkage = 0.1, n.minobsinnode = 5. Compare variable importance plots for the two models. What is the meaning of bag.fraction? Based on this, why is one variable importance profile more extreme than the other?
