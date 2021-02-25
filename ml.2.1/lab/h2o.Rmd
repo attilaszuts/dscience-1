@@ -28,9 +28,12 @@ In general, best resource to learn is the
 [documentation](http://docs.h2o.ai/h2o/latest-stable/h2o-docs/welcome.html) and many
 tutorials are available on YouTube.
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+```
+
 ```{r}
 library(tidyverse)
-library(ISLR)
 library(ggplot2)
 
 library(h2o)
@@ -86,7 +89,7 @@ print(h2o.rmse(glm_fit, xval = TRUE))
 ```
 
 You can perform a grid search with cross-validation to tune hyperparameters.
-```{r}
+```{r, message= FALSE}
 hyper_params <- list(alpha = c(0, .25, .5, .75, 1))
 
 # build grid search with previously selected hyperparameters
@@ -165,3 +168,28 @@ ggplot(prediction_vs_truth, aes(logwage, predict)) +
   theme_minimal() +
   labs(x = "Truth", y = "Prediction")
 ```
+
+You might use H2O's automl functionality that does the model search and hyperparameter tuning for you.
+You can use a lot of settings to limit the runtime or the number of tried models.
+You might also define a `leaderboard_frame` if you would like to calculate the performance metrics on a different data set instead of on the hold-out samples.
+
+```{r}
+automl_fit <- h2o.automl(
+  X, y,
+  training_frame = data_train,
+  nfolds = 5,
+  seed = 20210224
+)
+automl_fit@leaderboard
+```
+
+```{r}
+# Compare the performance of the best model to our previous models
+c(
+  validation_performances,
+  automl = h2o.rmse(h2o.performance(automl_fit@leader, data_valid))
+)
+```
+
+As you can see, there is some gain from using the auto-ML feature, but it does not change the big picture:
+each model gives us an RMSE of about 0.26. This corresponds to a mean absolute error of `r round(h2o.mae(h2o.performance(automl_fit@leader, data_valid)), 2)`, meaning that we are off about 20% on average. To improve this performance, you probably need additional data instead of more sophisticated models.
