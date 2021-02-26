@@ -57,6 +57,9 @@ Final exams are announced on Moodle.
 Class announcements and student Q&A will be done via Moodle.
   * [Course site for ML1](https://ceulearning.ceu.edu/course/view.php?id=10606).
 
+### Actionable reading: 
+The slides do not contain all information that is necessary for the course. Please follow the recommendations in the [reading material](reading_material.md) document.
+
 ### Syllabus and Schedule:
 
 ### ML #1
@@ -84,5 +87,3 @@ Tools: R packages, Keras.
 
 **ML 2.4:** Recap and summary.
 [Lecture](ml.2.4/lect) | [Lab](ml.2.4/lab).
-
-Actionable reading: The slides do not contain all information that is necessary for the course. Please follow the recommendations in the [reading material](reading_material.md) document.
