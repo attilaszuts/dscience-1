@@ -20,9 +20,7 @@ Szilárd Pafka <br>
 ### Course Description and Objectives
 
 The breakdown below (into ML #1 an #2) is somewhat adhoc and mainly to comply with administrative requirements.
-Both courses will intertwine general ML concepts, algorithms and software implementations/tools and will
-aim to strike a balance of theory and practice with the goal of equiping students with both the
-foundations to understand the ML methodology and also with the skills needed for using ML in practical
+Both courses will intertwine general ML concepts, algorithms and software implementations/tools and will aim to strike a balance of theory and practice with the goal of equiping students with both the foundations to understand the ML methodology and also with the skills needed for using ML in practical
 business applications.
 
 #### Data Science and Machine Learning 1 (Concepts):
@@ -48,22 +46,19 @@ Assignment acceptance policy and achievable grades:
 - 50% within 24 hours past due date
 - 0% after that.
 
-Assignment dates and deadlines for ML #1:
-- Feb 12, due on Feb 24 3:00 PM
-
-Assignment dates and deadlines for ML #2:
-- Feb 26, due on Mar 9 3:00 PM
-- (tentative) Mar 18, due on Mar 27 3:00 PM
+Assignment information and deadlines are announced on Moodle.
 
 ### Final exam
 
-Final exam for ML1: Feb 19 1:30 PM
-Final exam for ML2: Mar 30 3.30 PM
+Final exams are announced on Moodle.
 
 ### Announcements and Q&A
 
 Class announcements and student Q&A will be done via Moodle.
   * [Course site for ML1](https://ceulearning.ceu.edu/course/view.php?id=10606).
+
+### Actionable reading: 
+The slides do not contain all information that is necessary for the course. Please follow the recommendations in the [reading material](reading_material.md) document.
 
 ### Syllabus and Schedule:
 
