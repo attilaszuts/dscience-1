@@ -1,0 +1,336 @@
+---
+title: "DS2 Lab2 - Tree-based methods"
+subtitle: "Data Science 2: Machine Learning Tools - CEU 2021"
+author: "Janos K. Divenyi, Jeno Pal"
+date: '2021-03-01'
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    df_print: paged
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+```
+
+```{r, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+theme_set(theme_minimal())
+
+library(h2o)
+h2o.init()
+h2o.no_progress()
+```
+
+## Random forests
+
+You covered decision trees in DA3. Using it as a base model lets us
+build many different models with less variance and better predictive power.
+The downside: interpretation gets harder.
+
+Idea: as individual trees are unstable and have high variance, train many
+versions on bootstrap samples ("Bagging": Bootstrap AGGregation).
+Then predict: take the average (regression),
+majority vote / class share (classification).
+
+Random forests: randomly constrain the set of predictor variables used to grow trees (randomly select at each split).
+Goal: avoid correlated trees that are very similar to each other,
+still with the aim of decreasing variance.
+
+```{r}
+data <- as_tibble(ISLR::Hitters)
+skimr::skim(data)
+```
+
+```{r}
+# goal: predict log salary
+data <- as_tibble(ISLR::Hitters) %>%
+  drop_na(Salary) %>%
+  mutate(log_salary = log(Salary), Salary = NULL)
+
+h2o_data <- as.h2o(data)
+my_seed <- 20210301
+```
+
+
+```{r}
+splitted_data <- h2o.splitFrame(h2o_data, ratios = c(0.6, 0.2), seed = my_seed)
+data_train <- splitted_data[[1]]
+data_valid <- splitted_data[[2]]
+data_test <- splitted_data[[3]]
+```
+
+Let's see benchmarks: a linear model and a simple regression tree. Let's use MAE as our main performance metric. For log outcomes, MAE gives you about the typical size of the percentage error of the original outcome (here: salary).
+```{r}
+y <- "log_salary"
+X <- setdiff(names(h2o_data), y)
+
+# lambda = 0 corresponds to simple OLS
+simple_lm <- h2o.glm(
+  X, y,
+  training_frame = data_train,
+  model_id = "lm",
+  lambda = 0,
+  nfolds = 5,
+  seed = my_seed
+)
+h2o.mae(h2o.performance(simple_lm))
+h2o.mae(h2o.performance(simple_lm, data_valid))
+```
+
+```{r}
+# no dedicated single decision tree algorithm, so run a restricted randomForest:
+#  ntrees = 1, mtries = k and sample_rate = 1 (grow one tree on all the columns using all obs)
+simple_tree <- h2o.randomForest(
+  X, y,
+  training_frame = data_train,
+  model_id = "tree",
+  ntrees = 1, mtries = length(X), sample_rate = 1,
+  nfolds = 5,
+  seed = my_seed
+)
+h2o.mae(h2o.performance(simple_tree)) # for RF, h2o tries to give bag OOB errors
+h2o.mae(h2o.performance(simple_tree, data_valid))
+```
+(Plotting this tree would require [cumbersome work](http://rstudio-pubs-static.s3.amazonaws.com/463653_b50579f05ae246a9bfa4251ef9aae26b.html) so if you would like to look at the tree as well, use `rpart` instead. Here we just want to use them as benchmarks.)
+
+### Detour: Out of bag error
+
+Random forests are estimated either on bootstrap samples (full samples with replacement), or random sub-samples (without replacement). H20 opts for the second -- this is what you can control with the parameter `sample_rate` (defaults to 0.6320000291).
+In each case, some observations from the training data are not used for actual training (for bootstrap, around 1/3 or the observations are left out on average).
+
+Idea for "out of bag" measurement: for each sample point, obtain a random forest prediction from those trees where it was not used in the training sample.
+Then comparing this prediction to reality gives an honest measure of performance.
+It means that even without cross-validation, you have a way to calculate honest measures.
+
+
+You can see that our simple tree model tries to calculate the OOB metrics. However, as we used `sample_rate = 1`, each observation is used for the training (this would be true even if we moved to random forests and estimate multiple trees with this parameter setting).
+```{r}
+simple_tree
+```
+
+### Random forest with H2O
+For random forests,
+`mtries` (in `caret`: `mtry`) sets the number of variables randomly chosen for any split in the tree. When it equals the number of features, it is the bagging.
+
+```{r}
+# random forest
+simple_rf <- h2o.randomForest(
+  X, y,
+  training_frame = data_train,
+  model_id = "simple_rf",
+  nfolds = 5,
+  seed = my_seed
+)
+h2o.mae(h2o.performance(simple_rf))
+h2o.mae(h2o.performance(simple_rf, data_valid))
+```
+
+Tune the random forest
+```{r}
+rf_params <- list(
+  ntrees = c(10, 50, 100, 300),
+  mtries = c(2, 4, 6, 8),
+  sample_rate = c(0.2, 0.632, 1),
+  max_depth = c(10, 20)
+)
+
+rf_grid <- h2o.grid(
+  "randomForest", x = X, y = y,
+  training_frame = data_train,
+  grid_id = "rf",
+  nfolds = 5,  # not absolutely necessary, as the optimization could be done on OOB samples as well
+  seed = my_seed,
+  hyper_params = rf_params
+)
+h2o.getGrid(rf_grid@grid_id, "mae")
+best_rf <- h2o.getModel(
+  h2o.getGrid(rf_grid@grid_id, "mae")@model_ids[[1]]
+)
+h2o.mae(h2o.performance(best_rf))
+h2o.mae(h2o.performance(best_rf, data_valid))
+```
+
+```{r}
+rf_performance_summary <- as_tibble(h2o.getGrid(rf_grid@grid_id, "mae")@summary_table) %>%
+  as_tibble() %>%
+  mutate(across(c("mae", names(rf_params)), as.numeric))
+ggplot(rf_performance_summary, aes(ntrees, mae, color = factor(mtries))) +
+  geom_line() +
+  facet_grid(max_depth ~ sample_rate, labeller = label_both) +
+  theme(legend.position = "bottom") +
+  labs(color = "mtry")
+```
+
+### Variable importance
+
+With the ensemble models we have a hard time with interpretation.
+Variable importance measures can help to see which features contribute most
+to the predictive power of models. Variable importance is determined by calculating the relative influence of each variable: whether that variable was selected to split on during the tree building process, and how much the squared error (over all trees) improved (decreased) as a result.
+
+```{r}
+h2o.varimp_plot(best_rf)
+```
+
+### Partial dependence
+
+```{r}
+h2o.pd_plot(best_rf, data_valid, "CRuns")
+h2o.pd_plot(best_rf, data_valid, "Years")
+h2o.pd_plot(best_rf, data_valid, "Errors")
+```
+
+I advise you to look at the [Model Explainability](https://docs.h2o.ai/h2o/latest-stable/h2o-docs/explain.html#) section of H2O's documentation to see other tools that help you understand your model predictions.
+
+## Gradient boosting machines
+
+Gradient boosting machines: also ensembles of trees, however,
+the method of choosing them is different. Idea: get the residual and train
+next tree to predict (explain) the residual. Then add it to the previous
+trees, with a shrinkage parameter (to avoid overfitting). Thus, overall prediction is expected to improve.
+This is a boosting type algorithm. Boosting is building models (typically weak learners) sequentially, trying to improve the error of the previous models. [Here](https://quantdare.com/what-is-the-difference-between-bagging-and-boosting/) you can read further about the differences between bagging and boosting. Gradient boosting tries to improve on the gradient of the loss function which equals the residuals for regression problems with quadratic loss.
+
+
+```{r}
+simple_gbm <- h2o.gbm(
+  x = X, y = y,
+  model_id = "simple_gbm",
+  training_frame = data_train,
+  nfolds = 5,
+  seed = my_seed
+)
+simple_gbm
+h2o.mae(h2o.performance(simple_gbm))
+h2o.mae(h2o.performance(simple_gbm, data_valid))
+```
+
+The variable importance profile is typically more extreme than for random forests. This is not a contradiction or a problem, just a property of the models and ultimately different faces of the data.
+
+```{r}
+h2o.varimp_plot(simple_gbm)
+```
+
+Let's do some tuning
+```{r}
+gbm_params <- list(
+  learn_rate = c(0.01, 0.05, 0.1, 0.3),  # default: 0.1
+  ntrees = c(10, 50, 100, 300),
+  max_depth = c(2, 5),
+  sample_rate = c(0.2, 0.5, 0.8, 1)
+)
+
+gbm_grid <- h2o.grid(
+  "gbm", x = X, y = y,
+  grid_id = "gbm",
+  training_frame = data_train,
+  nfolds = 5,
+  seed = my_seed,
+  hyper_params = gbm_params
+)
+```
+
+```{r}
+gbm_performance_summary <- as_tibble(h2o.getGrid(gbm_grid@grid_id, "mae")@summary_table) %>%
+  as_tibble() %>%
+  mutate(across(c("mae", names(gbm_params)), as.numeric))
+ggplot(gbm_performance_summary, aes(ntrees, mae, color = factor(learn_rate))) +
+  geom_line() +
+  facet_grid(max_depth ~ sample_rate, labeller = label_both) +
+  theme(legend.position = "bottom") +
+  labs(color = "learning rate")
+```
+
+Lower learning rate (sometimes called "eta") means slower learning, hence more trees are necessary to have good performance.
+
+```{r}
+best_gbm <- h2o.getModel(
+  h2o.getGrid(gbm_grid@grid_id, "mae")@model_ids[[1]]
+)
+h2o.mae(h2o.performance(best_gbm))
+h2o.mae(h2o.performance(best_gbm, data_valid))
+```
+
+
+### XGBoost
+
+A celebrated implementation of the gradient boosting idea.
+_"Both xgboost and gbm follows the principle of gradient boosting. There are however, the difference in modeling details. Specifically, xgboost used a more regularized model formalization to control over-fitting, which gives it better performance."_
+
+See documentation [here](http://xgboost.readthedocs.io/).
+It proved to be very stable and widely applicable. For the many hyperparameters,
+consult the documentation.
+
+Again, I recommend StatQuest videos that are doing a very good job in explaining complex algorithms simply, and have corresponding parts for all the methods we try here.
+
+```{r}
+simple_xgboost <- h2o.xgboost(
+  x = X, y = y,
+  model_id = "simple_xgboost",
+  training_frame = data_train,
+  nfolds = 5,
+  seed = my_seed
+)
+simple_xgboost
+h2o.mae(h2o.performance(simple_xgboost))
+h2o.mae(h2o.performance(simple_xgboost, data_valid))
+```
+
+```{r}
+xgboost_params <- list(
+  learn_rate = c(0.1, 0.3),  # same as "eta", default: 0.3
+  ntrees = c(50, 100, 300),
+  max_depth = c(2, 5),
+  gamma = c(0, 1, 2),  # regularization parameter
+  sample_rate = c(0.5, 1)
+)
+
+xgboost_grid <- h2o.grid(
+  "xgboost", x = X, y = y,
+  grid_id = "xgbost",
+  training_frame = data_train,
+  nfolds = 5,
+  seed = my_seed,
+  hyper_params = xgboost_params
+)
+best_xgboost <- h2o.getModel(
+  h2o.getGrid(xgboost_grid@grid_id, "mae")@model_ids[[1]]
+)
+h2o.mae(h2o.performance(best_xgboost))
+h2o.mae(h2o.performance(best_xgboost, data_valid))
+```
+
+## Comparison of models
+```{r}
+my_models <- list(
+  simple_lm, simple_tree, simple_rf, best_rf,
+  simple_gbm, best_gbm, simple_xgboost,best_xgboost
+)
+mae_on_validation <- map_df(my_models, ~{
+  tibble(model = .@model_id, MAE = h2o.mae(h2o.performance(., data_valid)))
+}) %>% arrange(MAE)
+
+h2o.model_correlation_heatmap(my_models, data_valid)
+h2o.varimp_heatmap(my_models)
+```
+
+## Compare to AutoML
+
+```{r}
+automl <- h2o.automl(
+  X, y,
+  training_frame = data_train,
+  nfolds = 5,
+  sort_metric = "MAE",
+  seed = my_seed,
+  max_runtime_secs = 60
+)
+
+h2o.model_correlation_heatmap(automl, data_valid)
+rbind(
+  mae_on_validation,
+  c("automl", h2o.mae(h2o.performance(automl@leader, data_valid)))
+)
+```
