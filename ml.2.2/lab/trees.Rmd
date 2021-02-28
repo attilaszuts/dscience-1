@@ -130,7 +130,7 @@ h2o.mae(h2o.performance(simple_rf, data_valid))
 ```
 
 Tune the random forest
-```{r}
+```{r rf-tuning}
 rf_params <- list(
   ntrees = c(10, 50, 100, 300),
   mtries = c(2, 4, 6, 8),
@@ -232,7 +232,7 @@ gbm_grid <- h2o.grid(
 )
 ```
 
-```{r}
+```{r gbm-tuning}
 gbm_performance_summary <- as_tibble(h2o.getGrid(gbm_grid@grid_id, "mae")@summary_table) %>%
   as_tibble() %>%
   mutate(across(c("mae", names(gbm_params)), as.numeric))
@@ -278,7 +278,7 @@ h2o.mae(h2o.performance(simple_xgboost))
 h2o.mae(h2o.performance(simple_xgboost, data_valid))
 ```
 
-```{r}
+```{r xgboost-tuning}
 xgboost_params <- list(
   learn_rate = c(0.1, 0.3),  # same as "eta", default: 0.3
   ntrees = c(50, 100, 300),
@@ -303,7 +303,7 @@ h2o.mae(h2o.performance(best_xgboost, data_valid))
 ```
 
 ## Comparison of models
-```{r}
+```{r Comparison}
 my_models <- list(
   simple_lm, simple_tree, simple_rf, best_rf,
   simple_gbm, best_gbm, simple_xgboost,best_xgboost
@@ -318,7 +318,7 @@ h2o.varimp_heatmap(my_models)
 
 ## Compare to AutoML
 
-```{r}
+```{r AutoML}
 automl <- h2o.automl(
   X, y,
   training_frame = data_train,
