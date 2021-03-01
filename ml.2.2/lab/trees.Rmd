@@ -88,7 +88,8 @@ simple_tree <- h2o.randomForest(
   X, y,
   training_frame = data_train,
   model_id = "tree",
-  ntrees = 1, mtries = length(X), sample_rate = 1,
+  ntrees = 1, mtries = length(X), sample_rate = 1, 
+  max_depth = 10,
   nfolds = 5,
   seed = my_seed
 )
@@ -155,7 +156,7 @@ h2o.mae(h2o.performance(best_rf, data_valid))
 ```
 
 ```{r}
-rf_performance_summary <- as_tibble(h2o.getGrid(rf_grid@grid_id, "mae")@summary_table) %>%
+rf_performance_summary <- h2o.getGrid(rf_grid@grid_id, "mae")@summary_table %>%
   as_tibble() %>%
   mutate(across(c("mae", names(rf_params)), as.numeric))
 ggplot(rf_performance_summary, aes(ntrees, mae, color = factor(mtries))) +
@@ -233,7 +234,7 @@ gbm_grid <- h2o.grid(
 ```
 
 ```{r gbm-tuning}
-gbm_performance_summary <- as_tibble(h2o.getGrid(gbm_grid@grid_id, "mae")@summary_table) %>%
+gbm_performance_summary <- h2o.getGrid(gbm_grid@grid_id, "mae")@summary_table %>%
   as_tibble() %>%
   mutate(across(c("mae", names(gbm_params)), as.numeric))
 ggplot(gbm_performance_summary, aes(ntrees, mae, color = factor(learn_rate))) +
@@ -253,6 +254,19 @@ h2o.mae(h2o.performance(best_gbm))
 h2o.mae(h2o.performance(best_gbm, data_valid))
 ```
 
+
+```{r}
+gbm_manytree <- h2o.gbm(
+  x = X, y = y,
+  model_id = "gbm_manytree",
+  training_frame = data_train,
+  ntree = 500, learn_rate = 0.01, sample_rate = 0.5, max_depth = 5,
+  nfolds = 5,
+  seed = my_seed
+)
+h2o.mae(h2o.performance(gbm_manytree))
+h2o.mae(h2o.performance(gbm_manytree, data_valid))
+```
 
 ### XGBoost
 
@@ -281,7 +295,7 @@ h2o.mae(h2o.performance(simple_xgboost, data_valid))
 ```{r xgboost-tuning}
 xgboost_params <- list(
   learn_rate = c(0.1, 0.3),  # same as "eta", default: 0.3
-  ntrees = c(50, 100, 300),
+  ntrees = c(50, 100),
   max_depth = c(2, 5),
   gamma = c(0, 1, 2),  # regularization parameter
   sample_rate = c(0.5, 1)
@@ -289,7 +303,7 @@ xgboost_params <- list(
 
 xgboost_grid <- h2o.grid(
   "xgboost", x = X, y = y,
-  grid_id = "xgbost",
+  grid_id = "xgboost",
   training_frame = data_train,
   nfolds = 5,
   seed = my_seed,
@@ -306,7 +320,7 @@ h2o.mae(h2o.performance(best_xgboost, data_valid))
 ```{r Comparison}
 my_models <- list(
   simple_lm, simple_tree, simple_rf, best_rf,
-  simple_gbm, best_gbm, simple_xgboost,best_xgboost
+  simple_gbm, best_gbm, gbm_manytree, simple_xgboost,best_xgboost
 )
 mae_on_validation <- map_df(my_models, ~{
   tibble(model = .@model_id, MAE = h2o.mae(h2o.performance(., data_valid)))
