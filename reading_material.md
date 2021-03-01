@@ -51,7 +51,13 @@ In addition to that, numerous other written and video sources are listed per top
   - ESLII 10.10.2 Gradient Boosting (page 359-361)
 
 #### Support vector machines:
-  - Read ESLII 12.1-12.2 Tree-Based Methods (page 417-422)
+  - ESLII 12.1-12.2 Tree-Based Methods (page 417-422)
+  - [optional] Support Vector Machine — Simply Explained: https://towardsdatascience.com/support-vector-machine-simply-explained-fee28eba5496
+  - [optional] Support Vector Machines by Professor Yaser Abu-Mostafa https://www.youtube.com/watch?v=eHsErlPJWUU
+  - [optional] Kernel Methods by Professor Yaser Abu-Mostafa https://www.youtube.com/watch?v=XUj5JbQihlU
+
+#### Bayes optimal classifier:
+  - https://machinelearningmastery.com/bayes-optimal-classifier/
 
 #### Neural networks:
   - ESLII 11.3, 11.4, 11.5, 11.6 Neural Networks (page 392-404)
