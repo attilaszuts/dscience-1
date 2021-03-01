@@ -26,21 +26,21 @@ library(randomForest)
 # data: https://archive.ics.uci.edu/ml/datasets/Spambase
 
 # # from remote:
-# data_url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data"
-# data_localfile <- "wk-05-ML/data/spam.csv"
-# download.file(data_url, data_localfile)
-# #
-# data_meta <- "https://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.names"
-# col_names <- readLines(data_meta)[34:90]
-# col_names <- unlist(lapply(strsplit(col_names,":"), `[[`, 1))
-# col_names <- gsub(";","semicolon",col_names, fixed = TRUE) 
-# col_names <- gsub("(","parenth",col_names, fixed = TRUE)  
-# col_names <- gsub("[","brack",col_names, fixed = TRUE)   ## quick & dirty
-# col_names <- gsub("!","excl",col_names, fixed = TRUE)
-# col_names <- gsub("$","dollar",col_names, fixed = TRUE)
-# col_names <- gsub("#","hash",col_names, fixed = TRUE)
-# col_names <- c(col_names, "spam")
-# # dput(col_names)
+data_url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data"
+data_localfile <- "wk-05-ML/data/spam.csv"
+download.file(data_url, data_localfile)
+#
+data_meta <- "https://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.names"
+col_names <- readLines(data_meta)[34:90]
+col_names <- unlist(lapply(strsplit(col_names,":"), `[[`, 1))
+col_names <- gsub(";","semicolon",col_names, fixed = TRUE)
+col_names <- gsub("(","parenth",col_names, fixed = TRUE)
+col_names <- gsub("[","brack",col_names, fixed = TRUE)   ## quick & dirty
+col_names <- gsub("!","excl",col_names, fixed = TRUE)
+col_names <- gsub("$","dollar",col_names, fixed = TRUE)
+col_names <- gsub("#","hash",col_names, fixed = TRUE)
+col_names <- c(col_names, "spam")
+dput(col_names)
 
 
 registerDoMC(cores = 4)
@@ -123,10 +123,10 @@ xgbTreeModel2 <- train(spam~.,
                        method = "gbm",
                        preProcess = c("center", "scale"),
                        trControl=trctrlXgbTree,
-                       tuneGrid = data.frame(interaction.depth=c(1,2,3), 
-                                             n.trees=c(100, 200,300),
-                                             shrinkage = c(.0005, .001, 0.01),
-                                             n.minobsinnode = c(10, 10, 10)))
+                       tuneGrid = data.frame(interaction.depth=c(1,2,3), # 
+                                             n.trees=c(100, 200,300), # number of trees
+                                             shrinkage = c(.0005, .001, 0.01), # shrinkage
+                                             n.minobsinnode = c(10, 10, 10))) # observations in node
 xgbTreeModel2Roc <- roc(predictor = predict(xgbTreeModel2, SpamTest, type='prob', decision.values=T)$Spam, response = SpamTest$spam)
 xgbTreeModel2Roc
 
@@ -146,7 +146,7 @@ svmLinearModel <- train(spam~.,
                         data = SpamTrain, 
                         method = "svmLinear",
                         trControl=trctrl,
-                        #preProcess = c("center", "scale"),
+                        # preProcess = c("center", "scale", "pca"),
                         tuneLength = 10)
 svmLinearModel
 svmLinearModelRoc <- roc(predictor = predict(svmLinearModel, SpamTest, type='prob', decision.values=T)$Spam, response = SpamTest$spam)
@@ -159,10 +159,11 @@ trctrl <- trainControl(method = "repeatedcv", classProbs=TRUE, number = 5, repea
 svmRadialModel <- train(spam~., 
                         data = SpamTrain, 
                         method = "svmRadial",
-                        preProcess = c("center", "scale", "pca"),
+                        # preProcess = c("center", "scale", "pca"),
                         trControl=trctrl,
                         tuneLength = 10)
 svmRadialModel
+plot(svmRadialModel)
 svmRadialModelRoc <- roc(predictor = predict(svmRadialModel, SpamTest, type='prob', decision.values=T)$Spam, response = SpamTest$spam)
 svmRadialModelRoc
 plot(svmRadialModelRoc)
