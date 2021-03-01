@@ -88,11 +88,12 @@ simple_tree <- h2o.randomForest(
   X, y,
   training_frame = data_train,
   model_id = "tree",
-  ntrees = 1, mtries = length(X), sample_rate = 1,
-  nfolds = 5,
+  ntrees = 1, mtries = length(X), sample_rate = 1, # ntrees -> one tree, mtries -> we try all variables, sample rate -> how many observations do we use (instead of bootstrapping, but 1 is pretty much bootstrap)
+  max_depth = 10, # how deep is the tree
+  nfolds = 5, 
   seed = my_seed
 )
-h2o.mae(h2o.performance(simple_tree)) # for RF, h2o tries to give bag OOB errors
+h2o.mae(h2o.performance(simple_tree)) # for RF, h2o tries to give bag OOB errors -> but we used all observations with sample_rate = 1
 h2o.mae(h2o.performance(simple_tree, data_valid))
 ```
 (Plotting this tree would require [cumbersome work](http://rstudio-pubs-static.s3.amazonaws.com/463653_b50579f05ae246a9bfa4251ef9aae26b.html) so if you would like to look at the tree as well, use `rpart` instead. Here we just want to use them as benchmarks.)
@@ -163,6 +164,8 @@ ggplot(rf_performance_summary, aes(ntrees, mae, color = factor(mtries))) +
   facet_grid(max_depth ~ sample_rate, labeller = label_both) +
   theme(legend.position = "bottom") +
   labs(color = "mtry")
+
+# as sample rate increases with increased mtries the error increases
 ```
 
 ### Variable importance
@@ -241,9 +244,28 @@ ggplot(gbm_performance_summary, aes(ntrees, mae, color = factor(learn_rate))) +
   facet_grid(max_depth ~ sample_rate, labeller = label_both) +
   theme(legend.position = "bottom") +
   labs(color = "learning rate")
+
+# learning rate is small -> you need more trees
+# learning rate is med -> more trees wont give you better performance
+# learning rate is large -> overfitting
 ```
 
 Lower learning rate (sometimes called "eta") means slower learning, hence more trees are necessary to have good performance.
+
+```{r}
+gbm_manytree <- h2o.grid(
+  "gbm", x = X, y = y,
+  grid_id = "simple_gbm",
+  training_frame = data_train,
+  nfolds = 5,
+  seed = my_seed,
+  ntrees = 500, learn_rate = 0.01, sample_rate = 0.5, max_depth = 5
+)
+
+h2o.mae(h2o.performance(gbm_manytree))
+h2o.mae(h2o.performance(gbm_manytree, data_valid))
+```
+
 
 ```{r}
 best_gbm <- h2o.getModel(
@@ -283,7 +305,7 @@ xgboost_params <- list(
   learn_rate = c(0.1, 0.3),  # same as "eta", default: 0.3
   ntrees = c(50, 100, 300),
   max_depth = c(2, 5),
-  gamma = c(0, 1, 2),  # regularization parameter
+  gamma = c(0, 1, 2),  # regularization parameter, default: 0, same as 'mean split improvement' -> how much improvement we'd like to see with an additional cut
   sample_rate = c(0.5, 1)
 )
 
