@@ -1,0 +1,323 @@
+---
+title: "DS2 Lab2 - Classification, Stacking"
+subtitle: "Data Science 2: Machine Learning Tools - CEU 2021"
+author: "Janos K. Divenyi, Jeno Pal"
+date: '2021-03-11'
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+theme_set(theme_minimal())
+
+library(h2o)
+h2o.init()
+h2o.no_progress()
+
+my_seed <- 20210311
+```
+
+## Basic classification with simple models on h2o
+
+```{r}
+data <- read_csv("https://raw.githubusercontent.com/pappzoltan/machine-learning-course/master/data/airlines/airline100K.csv")
+skimr::skim(data)
+data <- mutate(data,
+  across(where(is.character), as.factor),
+  DepHour = factor(floor(DepTime / 100)),
+  DepTime = NULL
+)
+skimr::skim(data)
+```
+
+```{r}
+data_split <- h2o.splitFrame(as.h2o(data), ratios = 0.6, seed = my_seed)
+data_train <- data_split[[1]]
+data_test <- data_split[[2]]
+
+y <- "dep_delayed_15min"
+X <- setdiff(names(data_train), c(y, "Dest", "Origin"))
+```
+
+```{r logistic-regression}
+simple_lm <- h2o.glm(
+  X, y,
+  training_frame = data_train,
+  model_id = "logit",  # h2o recognize from the factor outcome that it should estimate a logit
+  lambda = 0,
+  nfolds = 5,
+  seed = my_seed
+)
+simple_lm
+```
+```{r}
+h2o.auc(simple_lm, train = TRUE, xval = TRUE)
+plot(h2o.performance(simple_lm, xval = TRUE), type = "roc")
+plot(h2o.performance(simple_lm, xval = TRUE), type = "pr")
+```
+
+```{r tree}
+simple_tree <- h2o.randomForest(
+  X, y,
+  training_frame = data_train,
+  model_id = "simple_tree",
+  ntrees = 1, mtries = length(X), sample_rate = 1,
+  max_depth = 2,
+  nfolds = 5,
+  seed = my_seed
+)
+simple_tree
+```
+
+Normally, the result of `h2o.randomForest` is a collection of trees. You can extract one of the models and look at its description. (Unfortunately, plotting is much more cumbersome.)
+```{r}
+tree_model <- h2o.getModelTree(simple_tree, 1)  # gets the first tree which is the only one now
+cat(tree_model@tree_decision_path)  # for some reason, here the predicted value is for "N" (not delayed)
+```
+
+
+```{r}
+h2o.auc(simple_tree, train = TRUE, xval = TRUE)
+plot(h2o.performance(simple_tree, xval = TRUE), type = "roc")
+plot(h2o.performance(simple_tree, xval = TRUE), type = "pr")
+```
+
+```{r}
+# get prediction
+predict(simple_lm, data_test[1:100,])
+predict(simple_tree, data_test[1:100,])
+```
+
+
+
+### Comparison of models using ROC / PR plots
+
+The default ROC plot is nice but is only capable of showing one model. If we want to compare multiple models on the same chart, we should calculate the metrics for varying thresholds. You might implement this using a simple loop on the predictions. Or you can just extract the calculated metrics from the `h2o.performance` object.
+
+```{r}
+getPerformanceMetrics <- function(model, newdata = NULL, xval = FALSE) {
+  h2o.performance(model, newdata = newdata, xval = xval)@metrics$thresholds_and_metric_scores %>%
+    as_tibble() %>%
+    mutate(model = model@model_id)
+}
+tree_performance <- getPerformanceMetrics(simple_tree, xval = TRUE)
+tree_performance
+```
+
+Plot ROC curve
+```{r}
+plotROC <- function(performance_df) {
+  ggplot(performance_df, aes(fpr, tpr, color = model)) +
+    geom_path() +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    coord_fixed() +
+    labs(x = "False Positive Rate", y = "True Positive Rate")
+}
+plotROC(tree_performance)
+```
+
+Plot RP curve
+```{r}
+plotRP <- function(performance_df) {
+  ggplot(performance_df, aes(precision, tpr, color = model)) +  # tpr = recall
+    geom_line() +
+    labs(x = "Precision", y = "Recall (TPR)")
+}
+plotRP(tree_performance)
+```
+
+Compare
+```{r}
+simple_models <- list(simple_lm, simple_tree)
+simple_models_performance <- map_df(simple_models, getPerformanceMetrics, xval = TRUE)
+plotROC(simple_models_performance)
+plotRP(simple_models_performance)
+```
+
+
+## Stacking:
+
+The idea is similar to tree-ensembles of random forests and gradient boosted trees, but here we want to aggregate strong models and instead of simply averaging the predictions of the base models, you can train a new meta-learner to find the best combination:
+    - specify different $L$ predictive models
+    - score training observations using out-of-fold predictions
+    - this gives a "level-one" data: the original outcome and the scores coming from the $L$ base models
+    - use these to estimate a second level predictive model ("meta-learner")
+
+When predicting new observations
+    - the base models are estimated using all training observations, use these to get scores for the new observation
+    - input this to the meta-learner model to get the predicted outcome
+
+The more uncorrelated predictions are, the more room there is to improve individual models by aggregating them.
+
+Stacked models do not always perform better than individual ones but many times they do.
+
+It is very convenient to create stacked ensembles in h2o, we are gaining practice with this now. See more [here](http://docs.h2o.ai/h2o/latest-stable/h2o-docs/data-science/stacked-ensembles.html).
+
+
+
+### Train some base learners
+
+Train some base learners using cross validation.
+
+```{r}
+glm_model <- h2o.glm(
+  X, y,
+  training_frame = data_train,
+  model_id = "lasso",
+  family = "binomial",
+  alpha = 1,
+  lambda_search = TRUE,
+  seed = my_seed,
+  nfolds = 5,
+  keep_cross_validation_predictions = TRUE  # this is necessary to perform later stacking
+)
+```
+```{r}
+rf_model <- h2o.randomForest(
+  X, y,
+  training_frame = data_train,
+  model_id = "rf",
+  ntrees = 200,
+  max_depth = 10,
+  seed = my_seed,
+  nfolds = 5,
+  keep_cross_validation_predictions = TRUE
+)
+```
+
+```{r}
+gbm_model <- h2o.gbm(
+  X, y,
+  training_frame = data_train,
+  model_id = "gbm",
+  ntrees = 200,
+  max_depth = 5,
+  learn_rate = 0.1,
+  seed = my_seed,
+  nfolds = 5,
+  keep_cross_validation_predictions = TRUE
+)
+```
+```{r}
+deeplearning_model <- h2o.deeplearning(
+  X, y,
+  training_frame = data_train,
+  model_id = "deeplearning",
+  hidden = c(32, 8),
+  seed = my_seed,
+  nfolds = 5,
+  keep_cross_validation_predictions = TRUE
+)
+```
+
+### Performance comparison
+```{r}
+my_models <- list(glm_model, rf_model, gbm_model, deeplearning_model)
+all_performance <- map_df(c(simple_models, my_models), getPerformanceMetrics, xval = TRUE)
+plotROC(all_performance)
+plotRP(all_performance)
+```
+
+
+### Stacking base learners
+
+You can combine models estimated on the same training set, using the same procedure for cross-validation (the seed should also be the same so the random folds are the same as well).
+```{r}
+ensemble_model <- h2o.stackedEnsemble(
+  X, y,
+  training_frame = data_train,
+  base_models = my_models,
+  keep_levelone_frame = TRUE
+)
+ensemble_model
+ensemble_model@model$metalearner_model@model$coefficients_table
+```
+
+```{r}
+# we can look into the level-1 features that are used as features by the meta learner
+level_1_features <- h2o.getFrame(ensemble_model@model$levelone_frame_id$name)
+level_1_features
+```
+
+```{r}
+# inspect correlations among scores from different models (on the out-of-fold samples)
+as_tibble(level_1_features) %>%
+  select(where(is.numeric)) %>%
+  GGally::ggcorr(label = TRUE, label_round = 2)
+# here we can calculate the correlation between the predictions for another data set
+h2o.model_correlation_heatmap(my_models, data_test)
+```
+
+
+```{r}
+# for the ensemble model
+map_df(
+  c(simple_models, my_models, ensemble_model),
+  ~{tibble(model = .@model_id, auc = h2o.auc(h2o.performance(., newdata = data_test)))}
+)
+
+```
+
+The baseline meta-learner is a glm model. You can try others:
+```{r}
+ensemble_model_gbm <- h2o.stackedEnsemble(
+  X, y,
+  training_frame = data_train,
+  metalearner_algorithm = "gbm",
+  base_models = my_models
+)
+```
+
+```{r}
+h2o.auc(h2o.performance(ensemble_model_gbm, newdata = data_test))
+```
+
+### Stacking models gained during a grid-search
+
+Meta-learning can also be built upon same-family, different hyperparameter models that you gain via a grid of hyperparameters.
+
+```{r}
+hyper_params <- list(learn_rate = c(0.1, 0.3), max_depth = c(3, 5, 7))
+
+gbm_grid <- h2o.grid(
+  x = X, y = y,
+  training_frame = data_train,
+  algorithm = "gbm",
+  ntrees = 10,
+  hyper_params = hyper_params,
+  seed = 123,
+  nfolds = 5,
+  keep_cross_validation_predictions = TRUE
+)
+```
+
+```{r}
+ensemble_model_grid_gbm <- h2o.stackedEnsemble(
+  X, y,
+  training_frame = data_train,
+  base_models = gbm_grid@model_ids
+)
+```
+Compare performance
+```{r}
+gbm_performances <- map_df(gbm_grid@model_ids, ~{
+  getPerformanceMetrics(h2o.getModel(.), newdata = data_test)
+})
+
+ensemble_performance <- getPerformanceMetrics(ensemble_model_grid_gbm, newdata = data_test)
+
+ggplot(gbm_performances, aes(fpr, tpr, group = model)) +
+    geom_path(alpha = 0.2) +
+    geom_path(color = "firebrick", data = ensemble_performance) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+    coord_fixed() +
+    labs(x = "False Positive Rate", y = "True Positive Rate")
+```
