@@ -8,6 +8,8 @@ output:
     df_print: paged
   html_notebook:
     df_print: paged
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -56,7 +58,13 @@ simple_lm <- h2o.glm(
   nfolds = 5,
   seed = my_seed
 )
-simple_lm
+simple_lm 
+
+# F1 metric is the harmonic mean of 
+# Precision (positive predictive value, whats the probability of you are actually positive if your test is positive) and 
+# Recall (how many positives are we going to find with the positives. if you are positive what is the probability that you will test pos, TPR)
+
+# the point of harmonic mean -> only high, when both of them is high
 ```
 ```{r}
 h2o.auc(simple_lm, train = TRUE, xval = TRUE)
@@ -239,6 +247,7 @@ ensemble_model <- h2o.stackedEnsemble(
 )
 ensemble_model
 ensemble_model@model$metalearner_model@model$coefficients_table
+str(ensemble_model@model$metalearner_model@model$coefficients_table)
 ```
 
 ```{r}
@@ -255,7 +264,10 @@ as_tibble(level_1_features) %>%
 # here we can calculate the correlation between the predictions for another data set
 h2o.model_correlation_heatmap(my_models, data_test)
 ```
+stack models of different types -> if they are similar and you stack them -> same results
 
+how does it get the weight? -> thats what it learns the metalearner
+different stacking methods?
 
 ```{r}
 # for the ensemble model
