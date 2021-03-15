@@ -1,0 +1,5 @@
+models,auc
+dtree,0.7559
+gbm,0.898
+rf,0.8964
+xgb,0.8964

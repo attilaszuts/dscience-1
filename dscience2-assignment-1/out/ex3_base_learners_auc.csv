@@ -1,0 +1,4 @@
+base_learner,auc
+glm,0.5768
+rf,0.5991
+deeplearning,0.5933
